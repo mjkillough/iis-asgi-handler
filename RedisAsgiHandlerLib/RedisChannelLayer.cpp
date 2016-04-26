@@ -65,10 +65,10 @@ std::tuple<std::string, RedisData> RedisChannelLayer::ReceiveMany(std::vector<st
     // This gives us the name of another key (including m_prefix) which contains the data.
     reply = ExecuteRedisCommand("GET %s", reply->element[1]->str);
     // TODO: Check success.
-    return {
+    return std::make_tuple(
         channel,
         std::move(reply) // only makes [1]->str available to caller
-    };
+    );
 }
 
 std::string RedisChannelLayer::GenerateUuid()
