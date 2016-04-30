@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
+from __future__ import unicode_literals, print_function
+
 import sys
 import time
-import urllib.parse
+import urllib
 
 import pytest
 
@@ -39,7 +41,7 @@ def test_asgi_http_scheme_https(site, asgi, session):
 def test_asgi_http_querystring(qs_parts, site, asgi, session):
     qs = ''
     if qs_parts is not None:
-        qs = '?' + urllib.parse.urlencode(qs_parts)
+        qs = '?' + urllib.urlencode(qs_parts)
     session.get(site.url + qs)
     asgi_request = asgi.receive_request()
     # IIS gives a query string of '' when provided with '?'
@@ -74,4 +76,4 @@ def test_asgi_http_headers(headers, site, asgi, session):
 if __name__ == '__main__':
     # Should really sys.exit() this, but it causes Visual Studio
     # to eat the output. :(
-    pytest.main('--ignore env/')
+    pytest.main(['--ignore', 'env1/'])

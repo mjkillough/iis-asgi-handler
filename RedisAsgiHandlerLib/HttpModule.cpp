@@ -12,6 +12,12 @@
 #include "RedisChannelLayer.h"
 
 
+HttpModule::HttpModule(const HttpModuleFactory& factory)
+    : m_factory(factory)
+{
+}
+
+
 void SetErrorResponse(IHttpResponse *response, int status = 500, std::string error = "Internal Error")
 {
     response->Clear();
@@ -22,6 +28,8 @@ REQUEST_NOTIFICATION_STATUS HttpModule::OnAcquireRequestState(
     IHttpContext *http_context,
     IHttpEventProvider *provider)
 {
+    m_factory.Log(L"OnAcquireRequestState");
+
     // Do we need a pool for channel managers? I am not sure we can
     // share the same RedisChannelLayer between threads and connecting
     // to redis is probably too expensive to do per-request.

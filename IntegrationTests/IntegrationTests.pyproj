@@ -12,8 +12,8 @@
     <OutputPath>.</OutputPath>
     <Name>IntegrationTests</Name>
     <RootNamespace>IntegrationTests</RootNamespace>
-    <InterpreterId>{365e3719-5b59-449c-a296-9b2897dff39e}</InterpreterId>
-    <InterpreterVersion>3.5</InterpreterVersion>
+    <InterpreterId>{75c86b93-8d2f-44e7-9f34-58eb850f95ff}</InterpreterId>
+    <InterpreterVersion>2.7</InterpreterVersion>
     <IsWindowsApplication>False</IsWindowsApplication>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <InterpreterArguments>
@@ -31,17 +31,23 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="test_http.py" />
     <Compile Include="conftest.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="fixtures\etw.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="test_http.py" />
+    <Compile Include="fixtures\__init__.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Interpreter Include="env\">
-      <Id>{365e3719-5b59-449c-a296-9b2897dff39e}</Id>
+    <Interpreter Include="env1\">
+      <Id>{75c86b93-8d2f-44e7-9f34-58eb850f95ff}</Id>
       <BaseInterpreter>{2af0f10d-7135-4994-9156-5d01c9c11b7e}</BaseInterpreter>
-      <Version>3.5</Version>
-      <Description>env (Python 3.5)</Description>
+      <Version>2.7</Version>
+      <Description>env1 (Python 2.7)</Description>
       <InterpreterPath>Scripts\python.exe</InterpreterPath>
       <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
       <LibraryPath>Lib\</LibraryPath>
@@ -51,6 +57,9 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="requirements.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="fixtures\" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
