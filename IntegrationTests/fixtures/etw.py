@@ -30,7 +30,7 @@ class EventProvider(etw.descriptors.event.EventCategory):
 
 class Consumer(etw.EventConsumer):
     def __init__(self, *args, **kwargs):
-        super(etw.EventConsumer, self).__init__(*args, **kwargs)
+        super(Consumer, self).__init__(*args, **kwargs)
         self.events = []
 
     @etw.EventHandler(EventDefinitions.StringEvent)
@@ -54,16 +54,6 @@ class ConsumerThread(threading.Thread):
 
     def run(self):
         self.source.Consume()
-
-
-# Taken from pytest docs - makes report available in fixture.
-@pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):
-    # execute all other hooks to obtain the report object
-    outcome = yield
-    if call.when == 'call':
-        rep = outcome.get_result()
-        setattr(item, "_etw_consumer_report", rep)
 
 
 @pytest.yield_fixture
@@ -101,9 +91,9 @@ def etw_consumer(request):
             thread.join()
             # If the test failed, append a report of all the logs we captured.
             # This relies on our hook to add the report ot the test object.
-            if hasattr(request.node, '_etw_consumer_report'):
-                if not request.node._etw_consumer_report.passed:
-                    request.node._etw_consumer_report.longrepr.addsection(
+            if hasattr(request.node, '_report'):
+                if not request.node._report.passed:
+                    request.node._report.longrepr.addsection(
                         'Captured ETW Logs',
                         consumer.get_report()
                     )

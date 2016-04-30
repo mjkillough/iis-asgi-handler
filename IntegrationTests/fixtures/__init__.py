@@ -7,6 +7,7 @@ import os
 import logging
 import subprocess
 import collections
+import concurrent.futures
 
 import pytest
 import asgi_redis
@@ -19,6 +20,16 @@ logger = logging.getLogger(__name__)
 
 MODULE_NAME = 'RedisAsgiHandler'
 DLL_PATH = os.path.join('C:\\', 'dev', 'RedisAsgiHandler', 'x64', 'Debug', 'RedisAsgiHandler.dll')
+
+
+# Taken from pytest docs - makes report available in fixture.
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    # execute all other hooks to obtain the report object
+    outcome = yield
+    if call.when == 'call':
+        rep = outcome.get_result()
+        setattr(item, "_report", rep)
 
 
 def appcmd(*args):
@@ -84,6 +95,43 @@ def asgi():
     return _ChannelsWrapper(asgi_redis.RedisChannelLayer())
 
 
-@pytest.fixture
-def session():
-    return requests_futures.sessions.FuturesSession()
+class _ThreadPoolExecutor(concurrent.futures.ThreadPoolExecutor):
+    """An executor that remembers its futures, so that they can be inspected on test failure."""
+    def __init__(self, *args, **kwargs):
+        super(_ThreadPoolExecutor, self).__init__(*args, **kwargs)
+        self.futures = []
+
+    def submit(self, fn, *args, **kwargs):
+        future = super(_ThreadPoolExecutor, self).submit(fn, *args, **kwargs)
+        self.futures.append(future)
+        return future
+
+@pytest.yield_fixture
+def session(request):
+    executor = _ThreadPoolExecutor(max_workers=2)
+    try:
+        yield requests_futures.sessions.FuturesSession(executor)
+    finally:
+        # If the test failed, append a summary of how many outstanding tasks
+        # we had. This can be useful to identify hung servers and when IIS has
+        # returned a response when we weren't expecting one (this usually indicates
+        # an error like a stopped AppPool).
+        if hasattr(request.node, '_report'):
+            if not request.node._report.passed:
+                request.node._report.longrepr.addsection(
+                    'Summary of requests-futures futures',
+                    '\r\n'.join(repr(future) for future in executor.futures)
+                )
+                for future in executor.futures:
+                    if future.done():
+                        response = future.result()
+                        request.node._report.longrepr.addsection(
+                            'Response for request: %s %s' % (response.request.method, response.request.url),
+                            (
+                                'Status: %s\r\n'
+                                'Headers: %s\r\n'
+                                'Body:\r\n%s'
+                                '\r\n\r\n---\r\n\r\n'
+                            ) % (response.status_code, response.headers, response.text)
+                        )
+        executor.shutdown(wait=False)
