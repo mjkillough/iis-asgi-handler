@@ -30,7 +30,6 @@ def test_asgi_http_scheme_https(site, asgi, session):
     assert asgi_request['scheme'] == 'https'
 
 
-# TODO: Test unicode too? Unclear whether we'd really be testing our IIS module, urlencode, or IIS.
 @pytest.mark.parametrize('qs_parts', [
     None, # means 'do not append ? to url'
     [],
@@ -49,15 +48,15 @@ def test_asgi_http_querystring(qs_parts, site, asgi, session):
     assert asgi_request['query_string'] == expected_qs.encode('utf-8')
 
 
-# TODO: Test for unicode too?
 @pytest.mark.parametrize('body', [
     '',
+    '☃',
     'this is a body',
 ])
 def test_asgi_http_body(body, site, asgi, session):
-    session.post(site.url, data=body)
+    session.post(site.url, data=body.encode('utf-8'))
     asgi_request = asgi.receive_request()
-    # assert asgi_request['body'] == body
+    assert asgi_request['body'].decode('utf-8') == body
 
 
 @pytest.mark.parametrize('headers', [
