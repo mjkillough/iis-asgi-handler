@@ -73,7 +73,7 @@ def site(tmpdir, install_iis_module):
 @pytest.fixture
 def asgi():
     # TODO: Use a custom prefix and configure IIS module to use it too.
-    class _ChannelsWrapper:
+    class _ChannelsWrapper(object):
         def __init__(self, asgi):
             self.asgi = asgi
         def receive_request(self):
