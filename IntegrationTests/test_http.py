@@ -60,13 +60,12 @@ def test_asgi_http_body(body, site, asgi, session):
 
 
 @pytest.mark.parametrize('headers', [
-    {},
-    {'User-Agent': 'Custom User-Agent', 'X-Custom-Header': 'Value'},
+    {'User-Agent': 'Custom User-Agent'}, # 'Known' header
+    {'X-Custom-Header': 'Value'},
 ])
 def test_asgi_http_headers(headers, site, asgi, session):
     future = session.get(site.url, headers=headers)
     asgi_request = asgi.receive_request()
-    assert len(headers) == len(asgi_request['headers'])
     for name, value in headers.items():
         encoded_header = [name.encode('utf-8'), value.encode('utf-8')]
         assert encoded_header in asgi_request['headers']
