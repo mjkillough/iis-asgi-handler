@@ -11,7 +11,8 @@ namespace {
     static const GUID EtwGuid = { 0xb057f98c, 0xcb95, 0x413d,{ 0xaf, 0xae, 0x8e, 0xd0, 0x10, 0xdb, 0x73, 0xc5 } };
 } // end anonymous namespace
 
-HttpModuleFactory::HttpModuleFactory()
+HttpModuleFactory::HttpModuleFactory(const HTTP_MODULE_ID& module_id)
+    : m_module_id(module_id)
 {
     ::EventRegister(&EtwGuid, nullptr, nullptr, &m_etw_handle);
 }

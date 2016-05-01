@@ -6,10 +6,7 @@
 HRESULT __stdcall RegisterModule(
     DWORD iisVersion, IHttpModuleRegistrationInfo* moduleInfo, IHttpServer* httpServer)
 {
-    // MSDN reckons we should store moduleInfo->GetId() and httpServer 
-    // somewhere global.
-
-    auto factory = new HttpModuleFactory();
+    auto factory = new HttpModuleFactory(moduleInfo->GetId());
     HRESULT hr = moduleInfo->SetRequestNotifications(
         factory, RQ_ACQUIRE_REQUEST_STATE, 0
     );

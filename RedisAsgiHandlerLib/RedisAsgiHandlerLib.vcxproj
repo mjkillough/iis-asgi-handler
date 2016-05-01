@@ -159,6 +159,7 @@
     <ClCompile Include="HttpModule.cpp" />
     <ClCompile Include="HttpModuleFactory.cpp" />
     <ClCompile Include="RedisChannelLayer.cpp" />
+    <ClCompile Include="HttpRequestHandler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AsgiHttpResponseMsg.h" />
@@ -166,6 +167,7 @@
     <ClInclude Include="HttpModuleFactory.h" />
     <ClInclude Include="AsgiHttpRequestMsg.h" />
     <ClInclude Include="RedisChannelLayer.h" />
+    <ClInclude Include="HttpRequestHandler.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\deps\msgpack-c\msgpackc-static.vcxproj">

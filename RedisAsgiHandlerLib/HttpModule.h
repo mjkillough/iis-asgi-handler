@@ -11,8 +11,8 @@ class HttpModule : public CHttpModule
 public:
     HttpModule(const HttpModuleFactory& factory);
 
-    REQUEST_NOTIFICATION_STATUS OnAcquireRequestState(
-        IN IHttpContext* httpContext, IN OUT IHttpEventProvider* provider
+    virtual REQUEST_NOTIFICATION_STATUS OnAcquireRequestState(
+        IHttpContext* httpContext, IHttpEventProvider* provider
     );
 
 private:
