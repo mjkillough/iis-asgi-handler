@@ -8,3 +8,8 @@ redis==2.10.5
 requests==2.9.1
 six==1.10.0
 requests-futures==0.9.7
+futures==3.0.5
+pypiwin32==219
+pytest-capturelog==0.7
+
+-e git+https://github.com/sebmarchand/pyetw.git@302431b0eecc7698f1b7641ed8cf39f8769beb4b#egg=ETW

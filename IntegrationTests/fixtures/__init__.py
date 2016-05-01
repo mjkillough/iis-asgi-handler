@@ -34,9 +34,11 @@ def pytest_runtest_makereport(item, call):
 
 def appcmd(*args):
     path = os.path.join('C:\\', 'Windows', 'System32', 'inetsrv', 'appcmd.exe')
-    print(path)
     cmd = [path] + list(args)
-    return subprocess.check_output(cmd)
+    logger.debug('Calling: %s', ' '.join(cmd))
+    output = subprocess.check_output(cmd)
+    logger.debug('Returned: %s', output)
+    return output
 
 def uninstall_module():
     appcmd('uninstall', 'module', MODULE_NAME)
@@ -53,32 +55,32 @@ def install_iis_module(etw_consumer):
     finally:
         # Allow errors to propogate, as they could affect the ability of other tests
         # to re-install the module.
-        print('uninstalling')
         uninstall_module()
 
 _Site = collections.namedtuple('_Site', ('url', 'https_url'))
 @pytest.yield_fixture
 def site(tmpdir, install_iis_module):
-    # TODO: - Randomize site name/port
-    #       - Remove any existing site before trying to create one
-    #       - Use a custom app pool and ensure it is started
+    pool_name = 'asgi-test-pool'
+    site_name = 'asgi-test-site'
+    http_port = 90
+    https_port = 91
     try:
         # Ensure IIS can read the directory. Use icacls to avoid introducing
         # pywin32 dependency.
         subprocess.check_call(['icacls', str(tmpdir), '/grant', 'Users:R'])
-        # Add the site and wait for it to start.
+        # Add the site with its own app pool. Failing tests can cause the
+        # pool to stop, so we create a new one for each test.
+        appcmd('add', 'apppool', '/name:' + pool_name)
         appcmd('add', 'site',
-            '/name:int-test-site', '/bindings:http://*:99,https://*:100',
-            '/physicalPath:' + str(tmpdir)
+            '/name:' + site_name,
+            '/bindings:http://*:%i,https://*:%i' % (http_port, https_port),
+            '/physicalPath:' + str(tmpdir),
         )
-        while True: # TODO: Timeout & delay between loops.
-            output = appcmd('list', 'site', 'int-test-site')
-            if b'Started' in output:
-                break
-
-        yield _Site('http://localhost:99', 'https://localhost:100')
+        appcmd('set', 'app', site_name + '/', '/applicationPool:' + pool_name)
+        yield _Site('http://localhost:%i' % http_port, 'https://localhost:%i' % https_port)
     finally:
-        appcmd('delete', 'site', 'int-test-site')
+        appcmd('delete', 'apppool', pool_name)
+        appcmd('delete', 'site', site_name)
 
 
 @pytest.fixture
