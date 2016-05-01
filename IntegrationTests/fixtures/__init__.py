@@ -87,13 +87,14 @@ def site(tmpdir, install_iis_module):
 def asgi():
     # TODO: Use a custom prefix and configure IIS module to use it too.
     class _ChannelsWrapper(object):
-        def __init__(self, asgi):
-            self.asgi = asgi
+        def __init__(self, channels):
+            self.channels = channels
         def receive_request(self):
-            channel, asgi_request = self.asgi.receive_many(['http.request'], block=True)
+            channel, asgi_request = self.channels.receive_many(['http.request'], block=True)
             assert channel == 'http.request'
             return asgi_request
-
+        def send(self, channel, msg):
+            self.channels.send(channel, msg)
     return _ChannelsWrapper(asgi_redis.RedisChannelLayer())
 
 
