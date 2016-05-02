@@ -83,6 +83,7 @@ REQUEST_NOTIFICATION_STATUS HttpRequestHandler::OnAcquireRequestState(
     m_asgi_request_msg.query_string = GetRequestQueryString(raw_request);
     m_asgi_request_msg.root_path = ""; // TODO: Same as SCRIPT_NAME in WSGI. What r that?
     m_asgi_request_msg.headers = GetRequestHeaders(raw_request);
+    m_asgi_request_msg.body.resize(request->GetRemainingEntityBytes());
 
     m_factory.Log(L"About to ReadBodyAsync().");
     bool async_pending = ReadBodyAsync();
@@ -102,7 +103,10 @@ REQUEST_NOTIFICATION_STATUS HttpRequestHandler::OnAsyncCompletion(
 {
     // TODO: Assert we are not in kStateInitial.
 
-    bool async_pending = OnReadingBodyAsyncComplete(completion_info);
+    bool async_pending = OnReadingBodyAsyncComplete(
+        completion_info->GetCompletionStatus(),
+        completion_info->GetCompletionBytes()
+    );
     if (async_pending) {
         m_factory.Log(L"OnReadingBodyAsyncComplete() returned true -- async operation pending.");
         return RQ_NOTIFICATION_PENDING;
@@ -130,37 +134,40 @@ bool HttpRequestHandler::ReadBodyAsync()
     // TODO: Split the body into chunks?
     // TODO: Pass completion_expected to handle async completion inline
 
-    DWORD content_length = request->GetRemainingEntityBytes();
-    DWORD bytes_to_read = content_length - m_body_bytes_read;
-    if (bytes_to_read == 0) {
+    DWORD remaining_bytes = request->GetRemainingEntityBytes();
+    if (remaining_bytes == 0) {
         return SendToApplication();
     }
 
     m_request_state = kStateReadingBody;
-    m_asgi_request_msg.body.resize(content_length);
+    DWORD bytes_read;
+    BOOL completion_expected;
     HRESULT hr = request->ReadEntityBody(
-        m_asgi_request_msg.body.data(), content_length,
-        true, nullptr, nullptr
+        m_asgi_request_msg.body.data() + m_body_bytes_read, remaining_bytes,
+        true, &bytes_read, &completion_expected
     );
     if (FAILED(hr)) {
         m_factory.Log(L"ReadEntityBody returned hr=" + std::to_wstring(hr));
         return ReturnError();
     }
+    if (!completion_expected) {
+        // Operation completed synchronously.
+        return OnReadingBodyAsyncComplete(S_OK, bytes_read);
+    }
 
     return true; // async pending
 }
 
-bool HttpRequestHandler::OnReadingBodyAsyncComplete(IHttpCompletionInfo* completion_info)
+bool HttpRequestHandler::OnReadingBodyAsyncComplete(HRESULT hr, DWORD bytes_read)
 {
-    HRESULT hr = completion_info->GetCompletionStatus();
     if (FAILED(hr)) {
         m_factory.Log(L"OnReadyBodyingAsyncComplete found GetCompletionStatus()=" + std::to_wstring(hr));
         return ReturnError();
     }
 
     IHttpRequest* request = m_http_context->GetRequest();
-    m_body_bytes_read += completion_info->GetCompletionBytes();
-    if (m_body_bytes_read < request->GetRemainingEntityBytes()) {
+    m_body_bytes_read += bytes_read;
+    if (request->GetRemainingEntityBytes()) {
         return ReadBodyAsync();
     }
 

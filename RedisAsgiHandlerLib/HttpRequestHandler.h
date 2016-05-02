@@ -48,7 +48,7 @@ private:
 
     // These return whether an async operation is pending.
     bool ReadBodyAsync();
-    bool OnReadingBodyAsyncComplete(IHttpCompletionInfo* completion_info);
+    bool OnReadingBodyAsyncComplete(HRESULT hr, DWORD bytes_read);
     bool SendToApplication();
     // bool OnSendToApplicationAsyncComplete();
     // bool WaitForResponseAsync();
