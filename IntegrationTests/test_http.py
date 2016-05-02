@@ -3,6 +3,7 @@
 
 from __future__ import unicode_literals, print_function
 
+import os
 import sys
 import time
 import urllib
@@ -55,6 +56,22 @@ def test_asgi_http_request_querystring(qs_parts, site, asgi, session):
 ])
 def test_asgi_http_request_body(body, site, asgi, session):
     session.post(site.url, data=body.encode('utf-8'))
+    asgi_request = asgi.receive_request()
+    assert asgi_request['body'].decode('utf-8') == body
+
+
+# NOTE: This test checks that requests with large bodies are handled. However,
+# they *should* be split into multiple ASGI messages, but they currently are not.
+@pytest.mark.parametrize('body_size', [
+    1024, # 1 KB
+    1024 * 1024, # 1 MB
+    1024 * 1024 * 15, # 15 MB
+])
+def test_asgi_http_request_large_bodies(body_size, site, asgi, session):
+    body = os.urandom(body_size // 2).encode('hex')
+    if body_size % 2:
+        body += 'e'
+    session.post(site.url, data=body)
     asgi_request = asgi.receive_request()
     assert asgi_request['body'].decode('utf-8') == body
 
