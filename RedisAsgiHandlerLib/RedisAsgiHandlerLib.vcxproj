@@ -104,7 +104,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;_USRDLL;RedisAsgiHandlerLib_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\deps\redis\deps\hiredis;..\deps\msgpack-c\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\deps\hiredis;..\deps\msgpack-c\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -170,14 +170,11 @@
     <ClInclude Include="HttpRequestHandler.h" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\deps\hiredis-ae-iocp\hiredis-ae-iocp.vcxproj">
+      <Project>{622cdfc1-956d-4b99-8362-acf14c959ee1}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\deps\msgpack-c\msgpackc-static.vcxproj">
       <Project>{077b1dce-b453-327f-bf3f-deab170280ed}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\deps\redis\msvs\hiredis\hiredis.vcxproj">
-      <Project>{13e85053-54b3-487b-8ddb-3430b1c1b3bf}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\deps\redis\src\Win32_Interop\Win32_Interop.vcxproj">
-      <Project>{8c07f811-c81c-432c-b334-1ae6faecf951}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
