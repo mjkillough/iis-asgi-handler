@@ -61,6 +61,13 @@
   <ItemGroup>
     <Folder Include="fixtures\" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\RedisAsgiHandler\RedisAsgiHandler.vcxproj">
+      <Name>RedisAsgiHandler</Name>
+      <Project>{d2ea1418-c4bf-4371-8dfd-923b3ab041af}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>

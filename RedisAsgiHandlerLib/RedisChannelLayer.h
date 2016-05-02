@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cvt/wstring>
 #include <codecvt>
+#include <ppltasks.h>
 
 #include <hiredis.h>
 
@@ -72,16 +73,8 @@ public:
 
     std::string NewChannel(std::string prefix) const;
 
-    // Where T is something that can be passed to msgpack::pack().
     template<typename T>
-    void Send(std::string channel, T& msg)
-    {
-        msgpack::sbuffer buffer;
-        msgpack::pack(buffer, msg);
-
-        Send(channel, buffer.data(), buffer.size());
-    }
-    void Send(std::string channel, char *data, size_t data_length);
+    concurrency::task<void> Send(const std::string& channel, T& msg);
 
     RedisData Receive(std::string channel, bool blocking = false)
     {
@@ -108,3 +101,25 @@ private:
     int m_expiry; // seconds
     redisContext *m_redis_ctx;
 };
+
+template<typename T>
+inline concurrency::task<void> RedisChannelLayer::Send(const std::string& channel, T& msg)
+{
+    return concurrency::create_task([this, channel, &msg]() {
+        msgpack::sbuffer buffer;
+        msgpack::pack(buffer, msg);
+
+        // asgi_redis chooses to store the data in a random key, then add the key to
+        // the channel. (This allows us to set the data to expire, which we do).
+        std::string data_key = m_prefix + GenerateUuid();
+        ExecuteRedisCommand("SET %s %b", data_key.c_str(), buffer.data(), buffer.size());
+        ExecuteRedisCommand("EXPIRE %s %i", data_key.c_str(), m_expiry);
+
+        // We also set expiry on the channel. (Subsequent Send()s will bump this expiry
+        // up). We set to +10, because asgi_redis does... presumably to workaround the
+        // fact that time has passed since we put the data into the data_key?
+        std::string channel_key = m_prefix + channel;
+        ExecuteRedisCommand("RPUSH %s %b", channel_key.c_str(), data_key.c_str(), data_key.length());
+        ExecuteRedisCommand("EXPIRE %s %i", channel_key.c_str(), m_expiry + 10);
+    });
+}

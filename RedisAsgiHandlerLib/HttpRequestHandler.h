@@ -40,7 +40,7 @@ private:
         kStateInitial,
         kStateReadingBody,
         kStateSendingToApplication,
-        // kStateWaitingForResponse,
+        kStateWaitingForResponse,
         kStateWritingResponse,
         // kStateWaitingForMoreResponse,
         kStateComplete,
@@ -50,7 +50,7 @@ private:
     bool ReadBodyAsync();
     bool OnReadingBodyAsyncComplete(HRESULT hr, DWORD bytes_read);
     bool SendToApplication();
-    // bool OnSendToApplicationAsyncComplete();
+    bool OnSendToApplicationAsyncComplete();
     // bool WaitForResponseAsync();
     // bool OnWaitForResponseAsyncComplete();
     bool WriteResponseAsync();

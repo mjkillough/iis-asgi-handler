@@ -30,16 +30,16 @@ void main()
 {
 	RedisChannelLayer channels;
 
-	struct RequestDict request;
-	request.reply_channel = "blah";
+    struct RequestDict request;
+    request.reply_channel = "blah";
 
-	channels.Send("http.request", request);
-	channels.Send("http.request", request);
+    channels.Send("http.request", request).wait();
+    channels.Send("http.request", request).wait();
 
-    auto one = channels.ReceiveMany({ "asgi:http.request" });
-    auto two = channels.ReceiveMany({ "asgi:http.request" });
-	std::cout << "Received " << std::get<0>(one) << " " << std::get<1>(one).get() << std::endl;
-	std::cout << "Received " << std::get<0>(two) << " " << std::get<1>(two).get() << std::endl;
+    auto one = channels.ReceiveMany({ "http.request" });
+    auto two = channels.ReceiveMany({ "http.request" });
+    std::cout << "Received " << std::get<0>(one) << " " << std::get<1>(one).get() << std::endl;
+    std::cout << "Received " << std::get<0>(two) << " " << std::get<1>(two).get() << std::endl;
 
     std::cin.get();
 }

@@ -1,3 +1,5 @@
+#include <ppltasks.h>
+
 #include "HttpRequestHandler.h"
 
 #include "AsgiHttpResponseMsg.h"
@@ -113,6 +115,9 @@ REQUEST_NOTIFICATION_STATUS HttpRequestHandler::OnAsyncCompletion(
     case kStateWritingResponse:
         async_pending = OnWriteResponseAsyncComplete(hr, bytes);
         break;
+    case kStateSendingToApplication:
+        async_pending = OnSendToApplicationAsyncComplete();
+        break;
     default:
         m_factory.Log(L"OnAsyncCompletion() called whilst in unexpected state: " + std::to_wstring(m_request_state));
         async_pending = ReturnError();
@@ -191,9 +196,18 @@ bool HttpRequestHandler::SendToApplication()
 {
     m_request_state = kStateSendingToApplication;
 
-    IHttpResponse *response = m_http_context->GetResponse();
+    auto task = m_channels.Send("http.request", m_asgi_request_msg);
+    task.then([this]() {
+        m_http_context->PostCompletion(0);
+        m_factory.Log(L"m_channels.Send() task completed; PostCompletion() called.");
+    });
 
-    m_channels.Send("http.request", m_asgi_request_msg);
+    return true; // async operation pending
+}
+
+bool HttpRequestHandler::OnSendToApplicationAsyncComplete()
+{
+    IHttpResponse *response = m_http_context->GetResponse();
 
     RedisData data = m_channels.Receive(m_asgi_request_msg.reply_channel);
     msgpack::object_handle response_msg_handle = msgpack::unpack(data.get(), data.length());

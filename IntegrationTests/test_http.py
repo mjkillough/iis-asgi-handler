@@ -23,7 +23,6 @@ def test_asgi_http_request_scheme_http(site, asgi, session):
     asgi_request = asgi.receive_request()
     assert asgi_request['scheme'] == 'http'
 
-
 @pytest.mark.skip(reason='Need to provide HTTPS certificate when setting up IIS site.')
 def test_asgi_http_request_scheme_https(site, asgi, session):
     session.get(site.https_url, verify=False)
@@ -134,4 +133,4 @@ def test_asgi_http_response_body(body, site, asgi, session):
 if __name__ == '__main__':
     # Should really sys.exit() this, but it causes Visual Studio
     # to eat the output. :(
-    pytest.main(['--ignore', 'env1/'])
+    pytest.main(['--ignore', 'env1/', '-x'])
