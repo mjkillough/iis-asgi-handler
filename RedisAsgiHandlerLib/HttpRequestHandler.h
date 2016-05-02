@@ -41,7 +41,7 @@ private:
         kStateReadingBody,
         kStateSendingToApplication,
         // kStateWaitingForResponse,
-        // kStateSendingResponse,
+        kStateWritingResponse,
         // kStateWaitingForMoreResponse,
         kStateComplete,
     };
@@ -53,8 +53,8 @@ private:
     // bool OnSendToApplicationAsyncComplete();
     // bool WaitForResponseAsync();
     // bool OnWaitForResponseAsyncComplete();
-    // bool SendResponseAsync();
-    // bool OnSendingResponseAsyncComplete(IHttpCompletionInfo* completion_info);
+    bool WriteResponseAsync();
+    bool OnWriteResponseAsyncComplete(HRESULT hr, DWORD bytes_read);
 
     static std::string GetRequestHttpVersion(const IHttpRequest* request);
     static std::string GetRequestScheme(const HTTP_REQUEST* raw_request);
@@ -66,6 +66,9 @@ private:
 
     // State for kStateReadingBody.
     DWORD m_body_bytes_read;
+    // State for kStateWritingResponse
+    HTTP_DATA_CHUNK m_resp_chunk;
+    DWORD m_resp_bytes_written;
 
     const HttpModuleFactory& m_factory;
     struct AsgiHttpRequestMsg m_asgi_request_msg;

@@ -62,7 +62,8 @@ std::unordered_map<USHORT, std::string> kKnownHeaderMap({
 
 HttpRequestHandler::HttpRequestHandler(const HttpModuleFactory& factory, IHttpContext* http_context)
     : m_factory(factory), m_http_context(http_context),
-      m_request_state(kStateInitial), m_body_bytes_read(0)
+      m_request_state(kStateInitial), m_body_bytes_read(0),
+      m_resp_bytes_written(0)
 {
 }
 
@@ -101,14 +102,25 @@ REQUEST_NOTIFICATION_STATUS HttpRequestHandler::OnAsyncCompletion(
     IHttpEventProvider* provider, IHttpCompletionInfo* completion_info
 )
 {
-    // TODO: Assert we are not in kStateInitial.
+    bool async_pending = false;
+    HRESULT hr = completion_info->GetCompletionStatus();
+    DWORD bytes = completion_info->GetCompletionBytes();
 
-    bool async_pending = OnReadingBodyAsyncComplete(
-        completion_info->GetCompletionStatus(),
-        completion_info->GetCompletionBytes()
-    );
+    switch (m_request_state) {
+    case kStateReadingBody:
+        async_pending = OnReadingBodyAsyncComplete(hr, bytes);
+        break;
+    case kStateWritingResponse:
+        async_pending = OnWriteResponseAsyncComplete(hr, bytes);
+        break;
+    default:
+        m_factory.Log(L"OnAsyncCompletion() called whilst in unexpected state: " + std::to_wstring(m_request_state));
+        async_pending = ReturnError();
+        break;
+    }
+
     if (async_pending) {
-        m_factory.Log(L"OnReadingBodyAsyncComplete() returned true -- async operation pending.");
+        m_factory.Log(L"OnAsyncCompletion() returning RQ_NOTIFICATION_PENDING.");
         return RQ_NOTIFICATION_PENDING;
     }
 
@@ -140,6 +152,7 @@ bool HttpRequestHandler::ReadBodyAsync()
     }
 
     m_request_state = kStateReadingBody;
+
     DWORD bytes_read;
     BOOL completion_expected;
     HRESULT hr = request->ReadEntityBody(
@@ -177,32 +190,64 @@ bool HttpRequestHandler::OnReadingBodyAsyncComplete(HRESULT hr, DWORD bytes_read
 bool HttpRequestHandler::SendToApplication()
 {
     m_request_state = kStateSendingToApplication;
+
     IHttpResponse *response = m_http_context->GetResponse();
 
     m_channels.Send("http.request", m_asgi_request_msg);
 
     RedisData data = m_channels.Receive(m_asgi_request_msg.reply_channel);
     msgpack::object_handle response_msg_handle = msgpack::unpack(data.get(), data.length());
-    AsgiHttpResponseMsg response_msg = response_msg_handle.get().as<AsgiHttpResponseMsg>();
+    m_asgi_response_msg = response_msg_handle.get().as<AsgiHttpResponseMsg>();
 
     response->Clear();
-    response->SetStatus(response_msg.status, ""); // Can we pass nullptr for the reason?
-    DWORD bytes_sent = 0;
-    // WriteEntityChunks doesn't seem to return bytes_sent?
-    // while (bytes_sent < response_msg.content.length()) {
-    HTTP_DATA_CHUNK chunk;
-    chunk.DataChunkType = HttpDataChunkFromMemory;
-    chunk.FromMemory.pBuffer = (PVOID)(response_msg.content.c_str() + bytes_sent);
-    chunk.FromMemory.BufferLength = response_msg.content.length() - bytes_sent;
-    response->WriteEntityChunks(&chunk, 1, false, false, &bytes_sent, nullptr);
-    // }
-    for (auto header : response_msg.headers) {
+    response->SetStatus(m_asgi_response_msg.status, ""); // Can we pass nullptr for the reason?
+    for (auto header : m_asgi_response_msg.headers) {
         std::string header_name = std::get<0>(header);
         std::string header_value = std::get<1>(header);
         response->SetHeader(header_name.c_str(), header_value.c_str(), header_value.length(), true);
     }
 
+    if (m_asgi_response_msg.content.length() > 0) {
+        return WriteResponseAsync();
+    }
+
     return false;
+}
+
+bool HttpRequestHandler::WriteResponseAsync()
+{
+    // TODO: Handle streaming responses.
+
+    m_request_state = kStateWritingResponse;
+
+    IHttpResponse* response = m_http_context->GetResponse();
+
+    m_resp_chunk.DataChunkType = HttpDataChunkFromMemory;
+    m_resp_chunk.FromMemory.pBuffer = (PVOID)(m_asgi_response_msg.content.c_str() + m_resp_bytes_written);
+    m_resp_chunk.FromMemory.BufferLength = m_asgi_response_msg.content.length() - m_resp_bytes_written;
+
+    DWORD bytes_written;
+    BOOL completion_expected;
+    HRESULT hr = response->WriteEntityChunks(
+        &m_resp_chunk, 1,
+        true, false, &bytes_written, &completion_expected
+    );
+    if (FAILED(hr)) {
+        m_factory.Log(L"WriteEntityChunks returned hr=" + std::to_wstring(hr));
+        return ReturnError();
+    }
+    if (!completion_expected) {
+        // Operation completed synchronously.
+        return OnWriteResponseAsyncComplete(S_OK, bytes_written);
+    }
+
+    return false; // async operation pending
+}
+
+bool HttpRequestHandler::OnWriteResponseAsyncComplete(HRESULT hr, DWORD bytes_read)
+{
+    // TODO: Handle streaming responses.
+    return false; // no async operation pending; we're done.
 }
 
 std::string HttpRequestHandler::GetRequestHttpVersion(const IHttpRequest* request)
