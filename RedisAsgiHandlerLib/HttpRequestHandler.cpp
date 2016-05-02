@@ -60,7 +60,9 @@ std::unordered_map<USHORT, std::string> kKnownHeaderMap({
 } // end anonymous namespace
 
 
-HttpRequestHandler::HttpRequestHandler()
+HttpRequestHandler::HttpRequestHandler(const HttpModuleFactory& factory, IHttpContext* http_context)
+    : m_factory(factory), m_http_context(http_context),
+      m_request_state(kStateInitial), m_body_bytes_read(0)
 {
 }
 
@@ -68,9 +70,10 @@ REQUEST_NOTIFICATION_STATUS HttpRequestHandler::OnAcquireRequestState(
     IHttpContext* http_context, IHttpEventProvider* provider
 )
 {
+    // TODO: Assert we are in kStateInitial.
+
     IHttpRequest *request = http_context->GetRequest();
     HTTP_REQUEST *raw_request = request->GetRawHttpRequest();
-    IHttpResponse *response = http_context->GetResponse();
 
     m_asgi_request_msg.reply_channel = m_channels.NewChannel("http.request!");
     m_asgi_request_msg.http_version = GetRequestHttpVersion(request);
@@ -81,20 +84,93 @@ REQUEST_NOTIFICATION_STATUS HttpRequestHandler::OnAcquireRequestState(
     m_asgi_request_msg.root_path = ""; // TODO: Same as SCRIPT_NAME in WSGI. What r that?
     m_asgi_request_msg.headers = GetRequestHeaders(raw_request);
 
-    // TODO: Consider writing the body directly to the msgpack object? We are copying around a lot.
-    // TODO: Split the body into chunks?
-    // TODO: Use async IO.
-    // TODO: Timeout if we don't get enough data.
-    DWORD content_length = request->GetRemainingEntityBytes();
-    m_asgi_request_msg.body.resize(content_length);
-    DWORD bytes_received = 0;
-    while (bytes_received < content_length) {
-        request->ReadEntityBody(
-            m_asgi_request_msg.body.data() + bytes_received,
-            content_length - bytes_received,
-            false, &bytes_received, nullptr
-        );
+    m_factory.Log(L"About to ReadBodyAsync().");
+    bool async_pending = ReadBodyAsync();
+    if (async_pending) {
+        m_factory.Log(L"ReadBodyAsync() returned true -- async operation pending.");
+        return RQ_NOTIFICATION_PENDING;
     }
+
+    m_request_state = kStateComplete;
+    return RQ_NOTIFICATION_FINISH_REQUEST;
+}
+
+REQUEST_NOTIFICATION_STATUS HttpRequestHandler::OnAsyncCompletion(
+    IHttpContext* http_context, DWORD notification, BOOL post_notification,
+    IHttpEventProvider* provider, IHttpCompletionInfo* completion_info
+)
+{
+    // TODO: Assert we are not in kStateInitial.
+
+    bool async_pending = OnReadingBodyAsyncComplete(completion_info);
+    if (async_pending) {
+        m_factory.Log(L"OnReadingBodyAsyncComplete() returned true -- async operation pending.");
+        return RQ_NOTIFICATION_PENDING;
+    }
+
+    m_request_state = kStateComplete;
+    return RQ_NOTIFICATION_FINISH_REQUEST;
+}
+
+bool HttpRequestHandler::ReturnError(USHORT status, const std::string& reason)
+{
+    // TODO: Flush? Pass hr to SetStatus() to give better error message?
+    IHttpResponse* response = m_http_context->GetResponse();
+    response->Clear();
+    response->SetStatus(status, reason.c_str());
+    return false; // No async pending.
+}
+
+bool HttpRequestHandler::ReadBodyAsync()
+{
+    IHttpRequest* request = m_http_context->GetRequest();
+
+    // TODO: Consider writing the body directly to the msgpack object?
+    //       We are copying around a lot.
+    // TODO: Split the body into chunks?
+    // TODO: Pass completion_expected to handle async completion inline
+
+    DWORD content_length = request->GetRemainingEntityBytes();
+    DWORD bytes_to_read = content_length - m_body_bytes_read;
+    if (bytes_to_read == 0) {
+        return SendToApplication();
+    }
+
+    m_request_state = kStateReadingBody;
+    m_asgi_request_msg.body.resize(content_length);
+    HRESULT hr = request->ReadEntityBody(
+        m_asgi_request_msg.body.data(), content_length,
+        true, nullptr, nullptr
+    );
+    if (FAILED(hr)) {
+        m_factory.Log(L"ReadEntityBody returned hr=" + std::to_wstring(hr));
+        return ReturnError();
+    }
+
+    return true; // async pending
+}
+
+bool HttpRequestHandler::OnReadingBodyAsyncComplete(IHttpCompletionInfo* completion_info)
+{
+    HRESULT hr = completion_info->GetCompletionStatus();
+    if (FAILED(hr)) {
+        m_factory.Log(L"OnReadyBodyingAsyncComplete found GetCompletionStatus()=" + std::to_wstring(hr));
+        return ReturnError();
+    }
+
+    IHttpRequest* request = m_http_context->GetRequest();
+    m_body_bytes_read += completion_info->GetCompletionBytes();
+    if (m_body_bytes_read < request->GetRemainingEntityBytes()) {
+        return ReadBodyAsync();
+    }
+
+    return SendToApplication();
+}
+
+bool HttpRequestHandler::SendToApplication()
+{
+    m_request_state = kStateSendingToApplication;
+    IHttpResponse *response = m_http_context->GetResponse();
 
     m_channels.Send("http.request", m_asgi_request_msg);
 
@@ -119,7 +195,7 @@ REQUEST_NOTIFICATION_STATUS HttpRequestHandler::OnAcquireRequestState(
         response->SetHeader(header_name.c_str(), header_value.c_str(), header_value.length(), true);
     }
 
-    return RQ_NOTIFICATION_FINISH_REQUEST;
+    return false;
 }
 
 std::string HttpRequestHandler::GetRequestHttpVersion(const IHttpRequest* request)

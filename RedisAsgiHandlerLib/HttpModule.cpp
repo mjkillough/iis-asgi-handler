@@ -25,7 +25,24 @@ REQUEST_NOTIFICATION_STATUS HttpModule::OnAcquireRequestState(
     m_factory.Log(L"OnAcquireRequestState");
 
     // Freed by IIS when the IHttpContext is destroyed, via StoredRequestContext::CleanupStoredContext()
-    auto request_ctx = new HttpRequestHandler();
-    http_context->GetModuleContextContainer()->SetModuleContext(request_ctx, m_factory.module_id());
-    return request_ctx->OnAcquireRequestState(http_context, provider);
+    auto request_handler = new HttpRequestHandler(m_factory, http_context);
+    http_context->GetModuleContextContainer()->SetModuleContext(request_handler, m_factory.module_id());
+    return request_handler->OnAcquireRequestState(http_context, provider);
+}
+
+REQUEST_NOTIFICATION_STATUS HttpModule::OnAsyncCompletion(
+    IHttpContext* http_context, DWORD notification, BOOL post_notification,
+    IHttpEventProvider* provider, IHttpCompletionInfo* completion_info
+)
+{
+    m_factory.Log(L"OnAsyncCompletion");
+
+    // TODO: Assert we have a HttpRequestHandler in the context container?
+    auto request_handler = static_cast<HttpRequestHandler*>(
+        http_context->GetModuleContextContainer()->GetModuleContext(m_factory.module_id())
+    );
+    return request_handler->OnAsyncCompletion(
+        http_context, notification, post_notification,
+        provider, completion_info
+    );
 }

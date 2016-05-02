@@ -15,6 +15,14 @@ public:
         IHttpContext* httpContext, IHttpEventProvider* provider
     );
 
+    virtual REQUEST_NOTIFICATION_STATUS OnAsyncCompletion(
+        IHttpContext* http_context,
+        DWORD notification,
+        BOOL post_notification,
+        IHttpEventProvider* provider,
+        IHttpCompletionInfo* completion_info
+    );
+
 private:
     const HttpModuleFactory& m_factory;
 };
