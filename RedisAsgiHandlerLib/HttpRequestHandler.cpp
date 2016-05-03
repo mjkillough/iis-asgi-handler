@@ -209,8 +209,9 @@ bool HttpRequestHandler::OnSendToApplicationAsyncComplete()
 {
     IHttpResponse *response = m_http_context->GetResponse();
 
-    RedisData data = m_channels.Receive(m_asgi_request_msg.reply_channel);
-    msgpack::object_handle response_msg_handle = msgpack::unpack(data.get(), data.length());
+    std::string data;
+    std::tie(std::ignore, data) = m_channels.ReceiveMany({ m_asgi_request_msg.reply_channel });
+    msgpack::object_handle response_msg_handle = msgpack::unpack(data.data(), data.length());
     m_asgi_response_msg = response_msg_handle.get().as<AsgiHttpResponseMsg>();
 
     response->Clear();

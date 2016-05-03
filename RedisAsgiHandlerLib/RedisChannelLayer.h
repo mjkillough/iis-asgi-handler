@@ -4,65 +4,14 @@
 #include <iostream>
 #include <cvt/wstring>
 #include <codecvt>
+#include <random>
+
 #include <ppltasks.h>
 
 #include <hiredis.h>
 
 
 typedef std::unique_ptr<redisReply, std::function<void(void*)>> RedisReply;
-
-
-// This is not a generic class. It is to be used by Receive*(), which gets
-// an ARRAY from BLPOP, but wants to transfer ownership of the char* in the
-// second element to its parent.
-class RedisData
-{
-public:
-    RedisData(redisReply *reply)
-        : m_reply(reply)
-    { }
-    RedisData(RedisData&& other)
-        : m_reply(nullptr)
-    {
-        std::swap(m_reply, other.m_reply);
-    }
-    RedisData(const RedisData&) = delete;
-    
-    // Takes ownership from a RedisReply.
-    RedisData(RedisReply&& reply)
-        : m_reply(nullptr)
-    {
-        m_reply = reply.release();
-    }
-
-    ~RedisData()
-    {
-        Delete();
-    }
-
-    char* get() const
-    {
-        // TODO: Assert we have type str?
-        return m_reply->str;
-    }
-
-    int length() const
-    {
-        return m_reply->len;
-    }
-
-private:
-    void Delete()
-    {
-        if (m_reply != nullptr) {
-            freeReplyObject(m_reply);
-            m_reply = nullptr;
-        }
-    }
-
-    redisReply *m_reply;
-};
-
 
 class RedisChannelLayer
 {
@@ -76,12 +25,7 @@ public:
     template<typename T>
     concurrency::task<void> Send(const std::string& channel, T& msg);
 
-    RedisData Receive(std::string channel, bool blocking = false)
-    {
-        return std::get<1>(ReceiveMany({ channel }, blocking));
-    }
-    std::tuple<std::string, RedisData> ReceiveMany(std::vector<std::string> channels, bool blocking = false);
-
+    std::tuple<std::string, std::string> ReceiveMany(const std::vector<std::string>& channels, bool blocking = false);
 
 private:
 
@@ -96,10 +40,10 @@ private:
     }
 
     std::wstring_convert<std::codecvt_utf8<wchar_t>> m_utf8_conv;
-
     std::string m_prefix;
     int m_expiry; // seconds
     redisContext *m_redis_ctx;
+    std::default_random_engine m_random_engine;
 };
 
 template<typename T>

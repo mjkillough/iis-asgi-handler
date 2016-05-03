@@ -1,4 +1,6 @@
 #include <iostream>
+#include <algorithm>
+
 #include <WinSock2.h>
 #include <rpc.h>
 
@@ -36,21 +38,51 @@ std::string RedisChannelLayer::NewChannel(std::string prefix) const
     return prefix + "not_unique";
 }
 
-std::tuple<std::string, RedisData> RedisChannelLayer::ReceiveMany(std::vector<std::string> channels, bool blocking)
+std::tuple<std::string, std::string> RedisChannelLayer::ReceiveMany(const std::vector<std::string>& channels, bool blocking)
 {
-    // TODO: Wait on more than one channel.
-    // TODO: Respect blocking.
-    // TODO: Investigate if there's any way we can avoid a copy when we put into unique_ptr
-    auto reply = ExecuteRedisCommand("BLPOP %s%s 0", m_prefix.c_str(), channels[0].c_str());
-    // NOTE: If we set a timeout, we should change this to check the type of the reply.
-    std::string channel(reply->element[0]->str);
-    // This gives us the name of another key (including m_prefix) which contains the data.
-    reply = ExecuteRedisCommand("GET %s", reply->element[1]->str);
-    // TODO: Check success.
-    return std::make_tuple(
-        channel,
-        std::move(reply) // only makes [1]->str available to caller
+    std::vector<std::string> prefixed_channels(channels.size());
+    for (const auto& it : channels) {
+        prefixed_channels.push_back(m_prefix + it);
+    }
+
+    // Shuffle to avoid one channel starving the others.
+    std::shuffle(prefixed_channels.begin(), prefixed_channels.end(), m_random_engine);
+
+    // Build up command for BLPOP
+    // TODO: Allow a non-blocking version. (Possibly only a non-blocking version?)
+    //       It looks like we might need a custom Lua script. Eek.
+    std::vector<const char*> buffer;
+    std::string blpop("BLPOP");
+    buffer.push_back(blpop.c_str());
+    for (const auto& it : prefixed_channels) {
+        buffer.push_back(it.c_str());
+    }
+    std::string timeout("1");
+    buffer.push_back(timeout.c_str());
+
+    // Run the BLPOP. Do this manually for now, rather than trying to figure out a sensible API for
+    // ExecuteRedisCommand to allow it to use redisCommandArgv().
+    RedisReply reply(
+        static_cast<redisReply*>(redisCommandArgv(m_redis_ctx, buffer.size(), buffer.data(), nullptr)),
+        freeReplyObject
     );
+    if (reply->type == REDIS_REPLY_NIL) {
+        return std::make_tuple("", "");
+    }
+    std::string channel(reply->element[0]->str);
+
+    // The response data is not actually stored in the channel. The channel contains a key.
+    reply = ExecuteRedisCommand("GET %s", reply->element[1]->str);
+    if (reply->type == REDIS_REPLY_NIL) {
+        // This usually means that the message has expired. When this happens,
+        // asgi_redis will loop and try to pull the next item from the list.
+        // TODO: We should loop here too.
+        return std::make_tuple("", "");
+    }
+
+    // TODO: Think of a way to avoid extra copies. Perhaps a msgpack::object
+    //       with pointers into the original redisReply.
+    return std::make_tuple(channel, std::string(reply->str, reply->len));
 }
 
 std::string RedisChannelLayer::GenerateUuid()
