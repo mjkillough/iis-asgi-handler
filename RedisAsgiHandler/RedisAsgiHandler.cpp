@@ -3,6 +3,7 @@
 
 #include "HttpModuleFactory.h"
 
+
 HRESULT __stdcall RegisterModule(
     DWORD iisVersion, IHttpModuleRegistrationInfo* moduleInfo, IHttpServer* httpServer)
 {

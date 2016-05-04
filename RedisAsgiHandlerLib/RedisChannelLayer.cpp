@@ -69,7 +69,8 @@ std::tuple<std::string, std::string> RedisChannelLayer::ReceiveMany(const std::v
     if (reply->type == REDIS_REPLY_NIL) {
         return std::make_tuple("", "");
     }
-    std::string channel(reply->element[0]->str);
+    // Remove the prefix before sharing the channel name with others.
+    std::string channel(reply->element[0]->str + m_prefix.size(), reply->element[0]->len - m_prefix.size());
 
     // The response data is not actually stored in the channel. The channel contains a key.
     reply = ExecuteRedisCommand("GET %s", reply->element[1]->str);

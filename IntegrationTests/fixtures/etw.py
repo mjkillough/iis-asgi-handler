@@ -39,9 +39,9 @@ class Consumer(etw.EventConsumer):
 
     def get_report(self):
         return '\r\n'.join(
-            '%s: %s' % (
+            '%s P%04dT%04d %s' % (
                 datetime.datetime.fromtimestamp(event.time_stamp).isoformat(),
-                event.data
+                event.process_id, event.thread_id, event.data
             )
             for event in self.events
         )

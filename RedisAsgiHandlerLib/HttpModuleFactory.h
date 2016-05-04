@@ -5,7 +5,9 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <httpserv.h>
-#include <evntprov.h>
+
+#include "ResponsePump.h"
+#include "Logger.h"
 
 
 class HttpModuleFactory : public IHttpModuleFactory
@@ -17,11 +19,12 @@ public:
     virtual HRESULT GetHttpModule(OUT CHttpModule** module, IN IModuleAllocator*);
     virtual void Terminate();
 
-    void Log(const std::wstring& msg) const;
 
     const HTTP_MODULE_ID& module_id() const { return m_module_id; }
 
+
 private:
-    ::REGHANDLE m_etw_handle;
     HTTP_MODULE_ID m_module_id;
+    Logger m_logger; // must be declared before other members that rely on it.
+    ResponsePump m_response_pump;
 };

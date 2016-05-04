@@ -4,12 +4,14 @@
 #include <httpserv.h>
 
 #include "HttpModuleFactory.h"
+#include "ResponsePump.h"
+#include "Logger.h"
 
 
 class HttpModule : public CHttpModule
 {
 public:
-    HttpModule(const HttpModuleFactory& factory);
+    HttpModule(const HttpModuleFactory& factory, ResponsePump& response_pump, const Logger& logger);
 
     virtual REQUEST_NOTIFICATION_STATUS OnAcquireRequestState(
         IHttpContext* httpContext, IHttpEventProvider* provider
@@ -25,4 +27,6 @@ public:
 
 private:
     const HttpModuleFactory& m_factory;
+    ResponsePump& m_response_pump;
+    Logger m_logger;
 };

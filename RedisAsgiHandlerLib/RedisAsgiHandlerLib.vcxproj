@@ -158,16 +158,20 @@
   <ItemGroup>
     <ClCompile Include="HttpModule.cpp" />
     <ClCompile Include="HttpModuleFactory.cpp" />
+    <ClCompile Include="Logger.cpp" />
     <ClCompile Include="RedisChannelLayer.cpp" />
     <ClCompile Include="HttpRequestHandler.cpp" />
+    <ClCompile Include="ResponsePump.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AsgiHttpResponseMsg.h" />
     <ClInclude Include="HttpModule.h" />
     <ClInclude Include="HttpModuleFactory.h" />
     <ClInclude Include="AsgiHttpRequestMsg.h" />
+    <ClInclude Include="Logger.h" />
     <ClInclude Include="RedisChannelLayer.h" />
     <ClInclude Include="HttpRequestHandler.h" />
+    <ClInclude Include="ResponsePump.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\deps\hiredis-ae-iocp\hiredis-ae-iocp.vcxproj">

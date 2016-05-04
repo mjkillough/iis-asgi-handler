@@ -133,4 +133,4 @@ def test_asgi_http_response_body(body, site, asgi, session):
 if __name__ == '__main__':
     # Should really sys.exit() this, but it causes Visual Studio
     # to eat the output. :(
-    pytest.main(['--ignore', 'env1/', '-x'])
+    pytest.main(['--ignore', 'env1/'])

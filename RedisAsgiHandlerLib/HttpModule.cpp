@@ -9,10 +9,12 @@
 #include "HttpModuleFactory.h"
 #include "AsgiHttpResponseMsg.h"
 #include "HttpRequestHandler.h"
+#include "ResponsePump.h"
+#include "Logger.h"
 
 
-HttpModule::HttpModule(const HttpModuleFactory& factory)
-    : m_factory(factory)
+HttpModule::HttpModule(const HttpModuleFactory& factory, ResponsePump& response_pump, const Logger& logger)
+    : m_factory(factory), m_response_pump(response_pump), m_logger(logger)
 {
 }
 
@@ -22,10 +24,10 @@ REQUEST_NOTIFICATION_STATUS HttpModule::OnAcquireRequestState(
     IHttpEventProvider *provider
 )
 {
-    m_factory.Log(L"OnAcquireRequestState");
+    m_logger.Log(L"OnAcquireRequestState");
 
     // Freed by IIS when the IHttpContext is destroyed, via StoredRequestContext::CleanupStoredContext()
-    auto request_handler = new HttpRequestHandler(m_factory, http_context);
+    auto request_handler = new HttpRequestHandler(m_factory, m_response_pump, m_logger, http_context);
     http_context->GetModuleContextContainer()->SetModuleContext(request_handler, m_factory.module_id());
     return request_handler->OnAcquireRequestState(http_context, provider);
 }
@@ -35,7 +37,7 @@ REQUEST_NOTIFICATION_STATUS HttpModule::OnAsyncCompletion(
     IHttpEventProvider* provider, IHttpCompletionInfo* completion_info
 )
 {
-    m_factory.Log(L"OnAsyncCompletion");
+    m_logger.Log(L"OnAsyncCompletion");
 
     // TODO: Assert we have a HttpRequestHandler in the context container?
     auto request_handler = static_cast<HttpRequestHandler*>(

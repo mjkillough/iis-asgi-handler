@@ -1,8 +1,9 @@
 #include <ppltasks.h>
 
 #include "HttpRequestHandler.h"
-
+#include "ResponsePump.h"
 #include "AsgiHttpResponseMsg.h"
+#include "Logger.h"
 
 
 namespace {
@@ -62,8 +63,12 @@ std::unordered_map<USHORT, std::string> kKnownHeaderMap({
 } // end anonymous namespace
 
 
-HttpRequestHandler::HttpRequestHandler(const HttpModuleFactory& factory, IHttpContext* http_context)
-    : m_factory(factory), m_http_context(http_context),
+HttpRequestHandler::HttpRequestHandler(
+    const HttpModuleFactory& factory, ResponsePump& response_pump,
+    const Logger& logger, IHttpContext* http_context
+)
+    : m_factory(factory), m_response_pump(response_pump), m_logger(logger),
+      m_http_context(http_context),
       m_request_state(kStateInitial), m_body_bytes_read(0),
       m_resp_bytes_written(0)
 {
@@ -88,13 +93,14 @@ REQUEST_NOTIFICATION_STATUS HttpRequestHandler::OnAcquireRequestState(
     m_asgi_request_msg.headers = GetRequestHeaders(raw_request);
     m_asgi_request_msg.body.resize(request->GetRemainingEntityBytes());
 
-    m_factory.Log(L"About to ReadBodyAsync().");
+    m_logger.Log(L"About to ReadBodyAsync().");
     bool async_pending = ReadBodyAsync();
     if (async_pending) {
-        m_factory.Log(L"ReadBodyAsync() returned true -- async operation pending.");
+        m_logger.Log(L"OnAcquireRequestState() returning RQ_NOTIFICATION_PENDING");
         return RQ_NOTIFICATION_PENDING;
     }
 
+    m_logger.Log(L"OnAcquireRequestState() returning RQ_NOTIFICATION_FINISH_REQUEST");
     m_request_state = kStateComplete;
     return RQ_NOTIFICATION_FINISH_REQUEST;
 }
@@ -118,17 +124,21 @@ REQUEST_NOTIFICATION_STATUS HttpRequestHandler::OnAsyncCompletion(
     case kStateSendingToApplication:
         async_pending = OnSendToApplicationAsyncComplete();
         break;
+    case kStateWaitingForResponse:
+        async_pending = OnWaitForResponseAsyncComplete();
+        break;
     default:
-        m_factory.Log(L"OnAsyncCompletion() called whilst in unexpected state: " + std::to_wstring(m_request_state));
+        m_logger.Log(L"OnAsyncCompletion() called whilst in unexpected state: " + std::to_wstring(m_request_state));
         async_pending = ReturnError();
         break;
     }
 
     if (async_pending) {
-        m_factory.Log(L"OnAsyncCompletion() returning RQ_NOTIFICATION_PENDING.");
+        m_logger.Log(L"OnAsyncCompletion() returning RQ_NOTIFICATION_PENDING.");
         return RQ_NOTIFICATION_PENDING;
     }
 
+    m_logger.Log(L"OnAsyncCompletion() returning RQ_NOTIFICATION_FINISH_REQUEST");
     m_request_state = kStateComplete;
     return RQ_NOTIFICATION_FINISH_REQUEST;
 }
@@ -145,6 +155,7 @@ bool HttpRequestHandler::ReturnError(USHORT status, const std::string& reason)
 bool HttpRequestHandler::ReadBodyAsync()
 {
     IHttpRequest* request = m_http_context->GetRequest();
+    m_logger.Log(L"Enter ReadBodyAsync()");
 
     // TODO: Consider writing the body directly to the msgpack object?
     //       We are copying around a lot.
@@ -165,7 +176,7 @@ bool HttpRequestHandler::ReadBodyAsync()
         true, &bytes_read, &completion_expected
     );
     if (FAILED(hr)) {
-        m_factory.Log(L"ReadEntityBody returned hr=" + std::to_wstring(hr));
+        m_logger.Log(L"ReadEntityBody returned hr=" + std::to_wstring(hr));
         return ReturnError();
     }
     if (!completion_expected) {
@@ -178,8 +189,9 @@ bool HttpRequestHandler::ReadBodyAsync()
 
 bool HttpRequestHandler::OnReadingBodyAsyncComplete(HRESULT hr, DWORD bytes_read)
 {
+    m_logger.Log(L"Enter OnReadingBodyAsyncComplete()");
     if (FAILED(hr)) {
-        m_factory.Log(L"OnReadyBodyingAsyncComplete found GetCompletionStatus()=" + std::to_wstring(hr));
+        m_logger.Log(L"OnReadyBodyingAsyncComplete found GetCompletionStatus()=" + std::to_wstring(hr));
         return ReturnError();
     }
 
@@ -194,12 +206,13 @@ bool HttpRequestHandler::OnReadingBodyAsyncComplete(HRESULT hr, DWORD bytes_read
 
 bool HttpRequestHandler::SendToApplication()
 {
+    m_logger.Log(L"Enter SendToApplication()");
     m_request_state = kStateSendingToApplication;
 
     auto task = m_channels.Send("http.request", m_asgi_request_msg);
     task.then([this]() {
         m_http_context->PostCompletion(0);
-        m_factory.Log(L"m_channels.Send() task completed; PostCompletion() called.");
+        m_logger.Log(L"m_channels.Send() task completed; PostCompletion() called.");
     });
 
     return true; // async operation pending
@@ -207,13 +220,29 @@ bool HttpRequestHandler::SendToApplication()
 
 bool HttpRequestHandler::OnSendToApplicationAsyncComplete()
 {
+    m_logger.Log(L"Enter OnSendToApplicationAsyncComplete()");
+    // This function is here to match the pattern of the others, but there isn't
+    // actually that much for us to do here!
+    return WaitForResponseAsync();
+}
+
+bool HttpRequestHandler::WaitForResponseAsync()
+{
+    m_logger.Log(L"Enter WaitForResponseAsync()");
+    m_request_state = kStateWaitingForResponse;
+    m_response_pump.AddChannel(m_asgi_request_msg.reply_channel, [this](std::string data) {
+        m_asgi_response_msg = msgpack::unpack(data.data(), data.length()).get().as<AsgiHttpResponseMsg>();
+        m_http_context->PostCompletion(0);
+        m_logger.Log(L"MessagePump gave us a message; PostCompletion() called");
+    });
+
+    return true; // async operation pending
+}
+
+bool HttpRequestHandler::OnWaitForResponseAsyncComplete()
+{
+    m_logger.Log(L"Enter OnWaitForResponseAsyncComplete()");
     IHttpResponse *response = m_http_context->GetResponse();
-
-    std::string data;
-    std::tie(std::ignore, data) = m_channels.ReceiveMany({ m_asgi_request_msg.reply_channel });
-    msgpack::object_handle response_msg_handle = msgpack::unpack(data.data(), data.length());
-    m_asgi_response_msg = response_msg_handle.get().as<AsgiHttpResponseMsg>();
-
     response->Clear();
     response->SetStatus(m_asgi_response_msg.status, ""); // Can we pass nullptr for the reason?
     for (auto header : m_asgi_response_msg.headers) {
@@ -226,12 +255,13 @@ bool HttpRequestHandler::OnSendToApplicationAsyncComplete()
         return WriteResponseAsync();
     }
 
-    return false;
+    return false; // we're done
 }
 
 bool HttpRequestHandler::WriteResponseAsync()
 {
     // TODO: Handle streaming responses.
+    m_logger.Log(L"Enter WriteResponseAsync()");
 
     m_request_state = kStateWritingResponse;
 
@@ -248,7 +278,7 @@ bool HttpRequestHandler::WriteResponseAsync()
         true, false, &bytes_written, &completion_expected
     );
     if (FAILED(hr)) {
-        m_factory.Log(L"WriteEntityChunks returned hr=" + std::to_wstring(hr));
+        m_logger.Log(L"WriteEntityChunks returned hr=" + std::to_wstring(hr));
         return ReturnError();
     }
     if (!completion_expected) {
@@ -261,6 +291,7 @@ bool HttpRequestHandler::WriteResponseAsync()
 
 bool HttpRequestHandler::OnWriteResponseAsyncComplete(HRESULT hr, DWORD bytes_read)
 {
+    m_logger.Log(L"Enter OnWriteResponseAsyncComplete()");
     // TODO: Handle streaming responses.
     return false; // no async operation pending; we're done.
 }

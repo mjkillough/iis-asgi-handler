@@ -1,0 +1,86 @@
+#include <chrono>
+
+#include "ResponsePump.h"
+#include "Logger.h"
+
+
+ResponsePump::ResponsePump(const Logger& logger)
+    : m_logger(logger), m_thread_stop(false)
+{
+    // We construct m_thread only when we're fully constructed.
+    m_thread = std::thread(&ResponsePump::ThreadMain, this);
+}
+
+ResponsePump::~ResponsePump()
+{
+    m_thread_stop = true;
+    // TODO: Consider m_callbacks.clear() and calling .detach()?
+    m_thread.join();
+}
+
+void ResponsePump::AddChannel(const std::string& channel, const ResponseChannelCallback& callback)
+{
+    std::lock_guard<std::mutex> lock(m_callbacks_mutex);
+    m_logger.Log(L"ResponsePump::AddChannel()");
+    m_callbacks[channel] = callback;
+}
+
+void ResponsePump::RemoveChannel(const std::string& channel)
+{
+    std::lock_guard<std::mutex> lock(m_callbacks_mutex);
+    m_callbacks.erase(channel);
+}
+
+void ResponsePump::ThreadMain()
+{
+    using namespace std::literals::chrono_literals;
+
+    m_logger.Log(L"ResponsePump::ThreadMain() starting");
+    while (!m_thread_stop) {
+        std::vector<std::string> channel_names;
+        {
+            std::lock_guard<std::mutex> lock(m_callbacks_mutex);
+            channel_names.reserve(m_callbacks.size());
+            for (const auto& it : m_callbacks) {
+                channel_names.push_back(it.first);
+            }
+        }
+
+        // These delay values have been chosen to match those in asgi_redis.
+        // TODO: Think about whether these make sense for us. Perhaps we should
+        //       have some way of being woken up whilst we're sleeping?
+        //       A 10-50ms latency seems like a pretty big hit.
+        auto delay = 50ms;
+        if (!channel_names.empty()) {
+            delay = 10ms;
+            
+            std::string channel, data;
+            std::tie(channel, data) = m_channels.ReceiveMany(channel_names, false);
+            if (!channel.empty()) {
+                delay = 0ms;
+
+                std::lock_guard<std::mutex> lock(m_callbacks_mutex);
+                const auto it = m_callbacks.find(channel);
+                // If we don't have a callback, do nothing. Assume the request
+                // has since been closed.
+                if (it != m_callbacks.end()) {
+                    const auto callback = it->second;
+                    m_callbacks.erase(it);
+                    // We call the callback with the lock still taken, so it shouldn't
+                    // try to Add or Remove callbacks. (We have removed its callback, so
+                    // hopefully it shouldn't need to).
+                    m_logger.Log(L"ResponsePump calling callback.");
+                    callback(std::move(data));
+                } else {
+                    m_logger.Log(L"ResponsePump dropping reply as no callback");
+                }
+            }
+        }
+
+        // Don't yield if there's more to dispatch.
+        if (delay != 0ms) {
+            std::this_thread::sleep_for(delay);
+        }
+    }
+    m_logger.Log(L"ResponsePump::ThreadMain() exiting");
+}

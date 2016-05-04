@@ -5,14 +5,18 @@
 
 #include "AsgiHttpRequestMsg.h"
 #include "AsgiHttpResponseMsg.h"
-#include "RedisChannelLayer.h"
 #include "HttpModuleFactory.h"
+#include "ResponsePump.h"
+#include "Logger.h"
 
 
 class HttpRequestHandler : public IHttpStoredContext
 {
 public:
-    HttpRequestHandler(const HttpModuleFactory& factory, IHttpContext* http_context);
+    HttpRequestHandler(
+        const HttpModuleFactory& factory, ResponsePump& response_pump,
+        const Logger& logger, IHttpContext* http_context
+    );
 
     virtual void CleanupStoredContext()
     {
@@ -51,8 +55,8 @@ private:
     bool OnReadingBodyAsyncComplete(HRESULT hr, DWORD bytes_read);
     bool SendToApplication();
     bool OnSendToApplicationAsyncComplete();
-    // bool WaitForResponseAsync();
-    // bool OnWaitForResponseAsyncComplete();
+    bool WaitForResponseAsync();
+    bool OnWaitForResponseAsyncComplete();
     bool WriteResponseAsync();
     bool OnWriteResponseAsyncComplete(HRESULT hr, DWORD bytes_read);
 
@@ -69,10 +73,13 @@ private:
     // State for kStateWritingResponse
     HTTP_DATA_CHUNK m_resp_chunk;
     DWORD m_resp_bytes_written;
+    // State for kStateWaitingForResponse/kStateWritingResponse
+    AsgiHttpResponseMsg m_asgi_response_msg;
 
     const HttpModuleFactory& m_factory;
-    struct AsgiHttpRequestMsg m_asgi_request_msg;
-    struct AsgiHttpResponseMsg m_asgi_response_msg;
+    ResponsePump& m_response_pump;
+    const Logger& m_logger;
+    AsgiHttpRequestMsg m_asgi_request_msg;
     RedisChannelLayer m_channels;
     RequestState m_request_state;
 };
