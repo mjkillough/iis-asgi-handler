@@ -7,6 +7,7 @@
 
 
 using ::testing::DoAll;
+using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::SetArgPointee;
 using ::testing::SaveArg;
@@ -19,9 +20,12 @@ public:
     ReadBodyStepTest()
         : handler(response_pump, &http_context), msg(std::make_unique<AsgiHttpRequestMsg>()),
           step(handler, msg)
-    { }
+    {
+        ON_CALL(http_context, GetRequest())
+            .WillByDefault(Return(&request));
+    }
 
-    MockIHttpContext http_context;
+    NiceMock<MockIHttpContext> http_context;
     MockResponsePump response_pump;
     MockHttpRequestHandler handler;
     MockIHttpRequest request;
@@ -32,8 +36,6 @@ public:
 
 TEST_F(ReadBodyStepTest, EnterDoesNothingForNoBody)
 {
-    EXPECT_CALL(http_context, GetRequest())
-        .WillRepeatedly(Return(&request));
     EXPECT_CALL(request, GetRemainingEntityBytes())
         .WillRepeatedly(Return(0));
     // We shouldn't get as far as calling ReadEntityBody()
@@ -46,8 +48,6 @@ TEST_F(ReadBodyStepTest, EnterDoesNothingForNoBody)
 
 TEST_F(ReadBodyStepTest, EnterFinishesRequestOnError)
 {
-    EXPECT_CALL(http_context, GetRequest())
-        .WillRepeatedly(Return(&request));
     EXPECT_CALL(request, GetRemainingEntityBytes())
         .WillRepeatedly(Return(1));
     EXPECT_CALL(request, ReadEntityBody(_, _, _, _, _))
@@ -61,8 +61,6 @@ TEST_F(ReadBodyStepTest, EnterFinishesRequestOnError)
 // Handle ReadEntityBody() completion synchronously.
 TEST_F(ReadBodyStepTest, EnterHandlesSynchronousRead)
 {
-    EXPECT_CALL(http_context, GetRequest())
-        .WillRepeatedly(Return(&request));
     EXPECT_CALL(request, GetRemainingEntityBytes())
         .WillOnce(Return(1))
         .WillRepeatedly(Return(0));
@@ -84,8 +82,6 @@ TEST_F(ReadBodyStepTest, EnterHandlesSynchronousRead)
 // give a pointer to a different place in the buffer.
 TEST_F(ReadBodyStepTest, EnterContinuesToRead)
 {
-    EXPECT_CALL(http_context, GetRequest())
-        .WillRepeatedly(Return(&request));
     EXPECT_CALL(request, GetRemainingEntityBytes())
         .WillOnce(Return(2))
         .WillOnce(Return(1))
@@ -117,8 +113,6 @@ TEST_F(ReadBodyStepTest, EnterContinuesToRead)
 // Returns kStepAsyncPending when ReadEntityBody() doesn't complete synchronously.
 TEST_F(ReadBodyStepTest, EnterReturnsAsyncPending)
 {
-    EXPECT_CALL(http_context, GetRequest())
-        .WillRepeatedly(Return(&request));
     EXPECT_CALL(request, GetRemainingEntityBytes())
         .WillRepeatedly(Return(1));
 
@@ -144,8 +138,6 @@ TEST_F(ReadBodyStepTest, OnAsyncCompletionFinishesRequestOnError)
 // Should return kStepRerun when there's more data to read.
 TEST_F(ReadBodyStepTest, OnAsyncCompletionMoreData)
 {
-    EXPECT_CALL(http_context, GetRequest())
-        .WillRepeatedly(Return(&request));
     EXPECT_CALL(request, GetRemainingEntityBytes())
         .WillRepeatedly(Return(1));
 
@@ -156,8 +148,6 @@ TEST_F(ReadBodyStepTest, OnAsyncCompletionMoreData)
 // Should goto next step when there's no more data to read.
 TEST_F(ReadBodyStepTest, OnAsyncCompletionNoMoreData)
 {
-    EXPECT_CALL(http_context, GetRequest())
-        .WillRepeatedly(Return(&request));
     EXPECT_CALL(request, GetRemainingEntityBytes())
         .WillRepeatedly(Return(0));
 
