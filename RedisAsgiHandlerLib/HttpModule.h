@@ -28,5 +28,6 @@ public:
 private:
     const HttpModuleFactory& m_factory;
     ResponsePump& m_response_pump;
+    RedisChannelLayer m_channels;
     Logger m_logger;
 };

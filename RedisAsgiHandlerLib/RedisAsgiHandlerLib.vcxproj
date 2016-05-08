@@ -104,7 +104,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;_USRDLL;RedisAsgiHandlerLib_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\deps\hiredis;..\deps\msgpack-c\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\deps\hiredis\msvs\deps\;..\deps\hiredis\;..\deps\msgpack-c\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -146,6 +146,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;_USRDLL;RedisAsgiHandlerLib_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\deps\hiredis\msvs\deps\;..\deps\hiredis\;..\deps\msgpack-c\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -158,6 +159,7 @@
   <ItemGroup>
     <ClCompile Include="HttpModule.cpp" />
     <ClCompile Include="HttpModuleFactory.cpp" />
+    <ClCompile Include="HttpRequestHandlerSteps.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="RedisChannelLayer.cpp" />
     <ClCompile Include="HttpRequestHandler.cpp" />
@@ -168,6 +170,7 @@
     <ClInclude Include="HttpModule.h" />
     <ClInclude Include="HttpModuleFactory.h" />
     <ClInclude Include="AsgiHttpRequestMsg.h" />
+    <ClInclude Include="HttpRequestHandlerSteps.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="RedisChannelLayer.h" />
     <ClInclude Include="HttpRequestHandler.h" />

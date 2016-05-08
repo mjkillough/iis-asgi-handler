@@ -84,7 +84,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\deps\googletest\googletest\include;..\deps\googletest\googlemock\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\deps\googletest\googletest\include;..\deps\googletest\googlemock\include;..\RedisAsgiHandlerLib\;..\deps\msgpack-c\include;..\deps\hiredis\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -113,7 +113,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\deps\googletest\googletest\include;..\deps\googletest\googlemock\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\deps\googletest\googletest\include;..\deps\googletest\googlemock\include;..\RedisAsgiHandlerLib\;..\deps\msgpack-c\include;..\deps\hiredis\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -135,7 +135,18 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="test_ReadBodyStep.cpp" />
+    <ClCompile Include="test_SendToApplicationStep.cpp" />
+    <ClCompile Include="test_WaitForResponseStep.cpp" />
+    <ClCompile Include="test_WriteResponseStep.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="mock_HttpRequestHandler.h" />
+    <ClInclude Include="mock_httpserv.h" />
+    <ClInclude Include="mock_Logger.h" />
+    <ClInclude Include="mock_RedisChannelLayer.h" />
+    <ClInclude Include="mock_ResponsePump.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

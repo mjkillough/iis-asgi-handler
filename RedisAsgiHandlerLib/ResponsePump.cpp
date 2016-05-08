@@ -7,15 +7,21 @@
 ResponsePump::ResponsePump(const Logger& logger)
     : m_logger(logger), m_thread_stop(false)
 {
-    // We construct m_thread only when we're fully constructed.
-    m_thread = std::thread(&ResponsePump::ThreadMain, this);
 }
 
 ResponsePump::~ResponsePump()
 {
     m_thread_stop = true;
     // TODO: Consider m_callbacks.clear() and calling .detach()?
-    m_thread.join();
+    if (m_thread.joinable()) {
+        m_thread.join();
+    }
+}
+
+void ResponsePump::Start()
+{
+    // TODO: Assert we aren't called twice.
+    m_thread = std::thread(&ResponsePump::ThreadMain, this);
 }
 
 void ResponsePump::AddChannel(const std::string& channel, const ResponseChannelCallback& callback)

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <algorithm>
 
+#define WIN32_LEAN_AND_MEAN
 #include <WinSock2.h>
 #include <rpc.h>
 
@@ -8,6 +9,7 @@
 #include <msgpack.hpp>
 
 #include "RedisChannelLayer.h"
+#include "AsgiHttpRequestMsg.h"
 
 
 RedisChannelLayer::RedisChannelLayer(std::string ip, int port, std::string prefix)
@@ -36,6 +38,27 @@ RedisChannelLayer::~RedisChannelLayer()
 std::string RedisChannelLayer::NewChannel(std::string prefix) const
 {
     return prefix + "not_unique";
+}
+
+concurrency::task<void> RedisChannelLayer::Send(const std::string& channel, AsgiHttpRequestMsg& msg)
+{
+    return concurrency::create_task([this, channel, &msg]() {
+        msgpack::sbuffer buffer;
+        msgpack::pack(buffer, msg);
+
+        // asgi_redis chooses to store the data in a random key, then add the key to
+        // the channel. (This allows us to set the data to expire, which we do).
+        std::string data_key = m_prefix + GenerateUuid();
+        ExecuteRedisCommand("SET %s %b", data_key.c_str(), buffer.data(), buffer.size());
+        ExecuteRedisCommand("EXPIRE %s %i", data_key.c_str(), m_expiry);
+
+        // We also set expiry on the channel. (Subsequent Send()s will bump this expiry
+        // up). We set to +10, because asgi_redis does... presumably to workaround the
+        // fact that time has passed since we put the data into the data_key?
+        std::string channel_key = m_prefix + channel;
+        ExecuteRedisCommand("RPUSH %s %b", channel_key.c_str(), data_key.c_str(), data_key.length());
+        ExecuteRedisCommand("EXPIRE %s %i", channel_key.c_str(), m_expiry + 10);
+    });
 }
 
 std::tuple<std::string, std::string> RedisChannelLayer::ReceiveMany(const std::vector<std::string>& channels, bool blocking)

@@ -12,12 +12,13 @@ public:
     ResponsePump(const Logger& logger);
     ~ResponsePump();
 
+    void Start();
+
     // TODO: Figure out exactly what this type should look like!
     using ResponseChannelCallback = std::function<void(std::string)>;
 
-    void AddChannel(const std::string& channel, const ResponseChannelCallback& callback);
-    void RemoveChannel(const std::string& channel);
-
+    virtual void AddChannel(const std::string& channel, const ResponseChannelCallback& callback);
+    virtual void RemoveChannel(const std::string& channel);
 
 private:
     void ThreadMain();

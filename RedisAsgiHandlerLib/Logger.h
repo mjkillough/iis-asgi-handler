@@ -13,7 +13,7 @@ public:
     Logger();
     ~Logger();
 
-    void Log(const std::wstring& msg) const;
+    virtual void Log(const std::wstring& msg) const;
 
 private:
     ::REGHANDLE m_etw_handle;
