@@ -5,7 +5,7 @@
 
 
 ResponsePump::ResponsePump(const Logger& logger)
-    : m_logger(logger), m_thread_stop(false)
+    : logger(logger), m_thread_stop(false)
 {
 }
 
@@ -27,7 +27,7 @@ void ResponsePump::Start()
 void ResponsePump::AddChannel(const std::string& channel, const ResponseChannelCallback& callback)
 {
     std::lock_guard<std::mutex> lock(m_callbacks_mutex);
-    m_logger.Log(L"ResponsePump::AddChannel()");
+    logger.debug() << "ResponsePump::AddChannel(" << channel << ", _)";
     m_callbacks[channel] = callback;
 }
 
@@ -41,7 +41,7 @@ void ResponsePump::ThreadMain()
 {
     using namespace std::literals::chrono_literals;
 
-    m_logger.Log(L"ResponsePump::ThreadMain() starting");
+    logger.debug() << "ResponsePump::ThreadMain() starting";
     while (!m_thread_stop) {
         std::vector<std::string> channel_names;
         {
@@ -75,10 +75,10 @@ void ResponsePump::ThreadMain()
                     // We call the callback with the lock still taken, so it shouldn't
                     // try to Add or Remove callbacks. (We have removed its callback, so
                     // hopefully it shouldn't need to).
-                    m_logger.Log(L"ResponsePump calling callback.");
+                    logger.debug() << "ResponsePump calling callback for channel: " << channel;
                     callback(std::move(data));
                 } else {
-                    m_logger.Log(L"ResponsePump dropping reply as no callback");
+                    logger.debug() << "ResponsePump dropping reply as no callback for channel: " << channel;
                 }
             }
         }
@@ -88,5 +88,5 @@ void ResponsePump::ThreadMain()
             std::this_thread::sleep_for(delay);
         }
     }
-    m_logger.Log(L"ResponsePump::ThreadMain() exiting");
+    logger.debug() << "ResponsePump::ThreadMain() exiting";
 }

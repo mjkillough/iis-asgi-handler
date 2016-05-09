@@ -7,7 +7,7 @@
 
 
 HttpModuleFactory::HttpModuleFactory(const HTTP_MODULE_ID& module_id)
-    : m_module_id(module_id), m_response_pump(m_logger)
+    : m_module_id(module_id), m_response_pump(logger)
 {
 }
 
@@ -17,7 +17,7 @@ HttpModuleFactory::~HttpModuleFactory()
 
 HRESULT HttpModuleFactory::GetHttpModule(OUT CHttpModule ** module, IN IModuleAllocator *)
 {
-    *module = new HttpModule(*this, m_response_pump, m_logger);
+    *module = new HttpModule(*this, m_response_pump, logger);
     return S_OK;
 }
 

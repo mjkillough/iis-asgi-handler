@@ -7,6 +7,9 @@
 #include "HttpRequestHandler.h"
 
 
+using ::testing::NiceMock;
+
+
 class MockHttpRequestHandler : public HttpRequestHandler
 {
 public:
@@ -15,5 +18,5 @@ public:
     { }
 
     MockRedisChannelLayer channels;
-    MockLogger logger;
+    NiceMock<MockLogger> logger;
 };

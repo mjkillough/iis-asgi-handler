@@ -68,7 +68,7 @@ std::unordered_map<USHORT, std::string> kKnownHeaderMap({
 HttpRequestHandler::HttpRequestHandler(
     ResponsePump& response_pump, RedisChannelLayer& channels, const Logger& logger, IHttpContext* http_context
 )
-    : m_response_pump(response_pump), m_channels(channels), m_logger(logger), m_http_context(http_context)
+    : m_response_pump(response_pump), m_channels(channels), logger(logger), m_http_context(http_context)
 {
 }
 
@@ -87,17 +87,14 @@ REQUEST_NOTIFICATION_STATUS HttpRequestHandler::OnAcquireRequestState()
     asgi_request_msg->root_path = ""; // TODO: Same as SCRIPT_NAME in WSGI. What r that?
     asgi_request_msg->headers = GetRequestHeaders(raw_request);
     asgi_request_msg->body.resize(request->GetRemainingEntityBytes());
-    m_logger.Log(L"Reserved " + std::to_wstring(request->GetRemainingEntityBytes()));
 
     m_current_step = std::make_unique<ReadBodyStep>(*this, std::move(asgi_request_msg));
 
-    auto step_name = std::string(typeid(*m_current_step.get()).name());
-    auto step_name_w = std::wstring(step_name.begin(), step_name.end()); // XXX ugh!
-    m_logger.Log(step_name_w + L"->Enter() being called");
+    logger.debug() << typeid(*m_current_step.get()).name() << "->Enter() being called";
 
     auto result = m_current_step->Enter();
 
-    m_logger.Log(step_name_w + L"->Enter() = " + std::to_wstring(result));
+    logger.debug() << typeid(*m_current_step.get()).name() << "->Enter() = " << result;
 
     return HandlerStateMachine(result);
 }
@@ -108,14 +105,11 @@ REQUEST_NOTIFICATION_STATUS HttpRequestHandler::OnAsyncCompletion(IHttpCompletio
     HRESULT hr = completion_info->GetCompletionStatus();
     DWORD bytes = completion_info->GetCompletionBytes();
 
-    auto step_name = std::string(typeid(*m_current_step.get()).name());
-    auto step_name_w = std::wstring(step_name.begin(), step_name.end()); // XXX ugh!
-
-    m_logger.Log(step_name_w + L"->OnAsyncCompletion() being called");
+    logger.debug() << typeid(*m_current_step.get()).name() << "->OnAsyncCompletion() being called";
 
     auto result = m_current_step->OnAsyncCompletion(hr, bytes);
 
-    m_logger.Log(step_name_w + L"->OnAsyncCompletion() = " + std::to_wstring(result));
+    logger.debug() << typeid(*m_current_step.get()).name() << "->OnAsyncCompletion() = " << result;
 
     return HandlerStateMachine(result);
 }
@@ -140,34 +134,24 @@ REQUEST_NOTIFICATION_STATUS HttpRequestHandler::HandlerStateMachine(StepResult _
         case kStepFinishRequest:
             return RQ_NOTIFICATION_FINISH_REQUEST;
         case kStepRerun: {
-            auto step_name = std::string(typeid(*m_current_step.get()).name());
-            auto step_name_w = std::wstring(step_name.begin(), step_name.end()); // XXX ugh!
 
-            m_logger.Log(step_name_w + L"->Enter() being called");
-
+            logger.debug() << typeid(*m_current_step.get()).name() << "->Enter() being called";
             result = m_current_step->Enter();
+            logger.debug() << typeid(*m_current_step.get()).name() << "->Enter() = " << result;
 
-            m_logger.Log(step_name_w + L"->Enter() = " + std::to_wstring(result));
-        } break;
+            break;
+        }
         case kStepGotoNext: {
-            auto step_name = std::string(typeid(*m_current_step.get()).name());
-            auto step_name_w = std::wstring(step_name.begin(), step_name.end()); // XXX ugh!
 
-            m_logger.Log(step_name_w + L"->GetNextStep() being called");
-
+            logger.debug() << typeid(*m_current_step.get()).name() << "->GetNextStep() being called";
             m_current_step = m_current_step->GetNextStep();
 
-            step_name = std::string(typeid(*m_current_step.get()).name());
-            step_name_w = std::wstring(step_name.begin(), step_name.end()); // XXX ugh!
-
-            m_logger.Log(L"New step: " + step_name_w);
-            m_logger.Log(step_name_w + L"->Enter() being called");
-
+            logger.debug() << typeid(*m_current_step.get()).name() << "->Enter() being called";
             result = m_current_step->Enter();
+            logger.debug() << typeid(*m_current_step.get()).name() << "->Enter() = " << result;
 
-            m_logger.Log(step_name_w + L"->Enter() = " + std::to_wstring(result));
-        } break;
-        }
+            break;
+        }}
     }
 }
 

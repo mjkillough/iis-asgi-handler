@@ -25,6 +25,6 @@ public:
 
 private:
     HTTP_MODULE_ID m_module_id;
-    Logger m_logger; // must be declared before other members that rely on it.
+    Logger logger; // must be declared before other members that rely on it.
     ResponsePump m_response_pump;
 };

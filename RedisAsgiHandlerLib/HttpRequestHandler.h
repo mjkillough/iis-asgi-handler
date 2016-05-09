@@ -34,7 +34,7 @@ protected:
 
     IHttpContext* m_http_context;
     ResponsePump& m_response_pump;
-    const Logger& m_logger;
+    const Logger& logger;
     std::unique_ptr<HttpRequestHandlerStep> m_current_step;
     RedisChannelLayer& m_channels;
     friend class HttpRequestHandlerStep;

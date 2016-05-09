@@ -37,8 +37,8 @@ protected:
     HttpRequestHandler& m_handler;
     // Expose some of m_handler's protected members here, so that they are
     // accessible from Step subclasses.
+    const Logger& logger;
     IHttpContext* m_http_context;
-    const Logger& m_logger;
     ResponsePump& m_response_pump;
     RedisChannelLayer& m_channels;
 };

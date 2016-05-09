@@ -14,7 +14,7 @@
 
 
 HttpModule::HttpModule(const HttpModuleFactory& factory, ResponsePump& response_pump, const Logger& logger)
-    : m_factory(factory), m_response_pump(response_pump), m_logger(logger)
+    : m_factory(factory), m_response_pump(response_pump), logger(logger)
 {
     m_response_pump.Start();
 }
@@ -25,11 +25,12 @@ REQUEST_NOTIFICATION_STATUS HttpModule::OnAcquireRequestState(
     IHttpEventProvider *provider
 )
 {
-    m_logger.Log(L"OnAcquireRequestState");
+    logger.debug() << "HttpModule::OnAcquireRequestState()";
 
     // Freed by IIS when the IHttpContext is destroyed, via StoredRequestContext::CleanupStoredContext()
-    auto request_handler = new HttpRequestHandler(m_response_pump, m_channels, m_logger, http_context);
+    auto request_handler = new HttpRequestHandler(m_response_pump, m_channels, logger, http_context);
     http_context->GetModuleContextContainer()->SetModuleContext(request_handler, m_factory.module_id());
+
     return request_handler->OnAcquireRequestState();
 }
 
@@ -38,11 +39,12 @@ REQUEST_NOTIFICATION_STATUS HttpModule::OnAsyncCompletion(
     IHttpEventProvider* provider, IHttpCompletionInfo* completion_info
 )
 {
-    m_logger.Log(L"OnAsyncCompletion");
+    logger.debug() << "HttpModule::OnAsyncCompletion()";
 
     // TODO: Assert we have a HttpRequestHandler in the context container?
     auto request_handler = static_cast<HttpRequestHandler*>(
         http_context->GetModuleContextContainer()->GetModuleContext(m_factory.module_id())
     );
+
     return request_handler->OnAsyncCompletion(completion_info);
 }

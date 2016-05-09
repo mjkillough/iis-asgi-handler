@@ -27,7 +27,7 @@ private:
     // (This will allow someone to configure it to speak to the right redis, etc.)
     RedisChannelLayer m_channels;
 
-    const Logger& m_logger;
+    const Logger& logger;
     std::thread m_thread;
     bool m_thread_stop;
     std::unordered_map<std::string, ResponseChannelCallback> m_callbacks;

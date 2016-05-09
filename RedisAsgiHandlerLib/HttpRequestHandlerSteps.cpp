@@ -14,7 +14,7 @@
 
 HttpRequestHandlerStep::HttpRequestHandlerStep(HttpRequestHandler & handler)
     : m_handler(handler), m_http_context(handler.m_http_context),
-      m_logger(handler.m_logger), m_response_pump(handler.m_response_pump),
+      logger(handler.logger), m_response_pump(handler.m_response_pump),
       m_channels(handler.m_channels)
 { }
 
@@ -36,7 +36,7 @@ StepResult ReadBodyStep::Enter()
             true, &bytes_read, &completion_expected
         );
         if (FAILED(hr)) {
-            m_logger.Log(L"ReadEntityBody returned hr=" + std::to_wstring(hr));
+            logger.debug() << "ReadEntityBody() = " << hr;
             // TODO: Call an Error() or something.
             return kStepFinishRequest;
         }
@@ -59,9 +59,7 @@ StepResult ReadBodyStep::Enter()
 
 StepResult ReadBodyStep::OnAsyncCompletion(HRESULT hr, DWORD num_bytes)
 {
-    m_logger.Log(L"ReadBodyStep->OnAsyncCompletion() - num_bytes=" + std::to_wstring(num_bytes));
     if (FAILED(hr)) {
-        m_logger.Log(L"OnReadyBodyingAsyncComplete found GetCompletionStatus()=" + std::to_wstring(hr));
         // TODO: Call an Error() or something.
         return kStepFinishRequest;
     }
@@ -89,7 +87,7 @@ StepResult SendToApplicationStep::Enter()
     // TODO: Split into chunked messages.
     auto task = m_channels.Send("http.request", *m_asgi_request_msg);
     task.then([this]() {
-        m_logger.Log(L"m_channels.Send() task completed; calling PostCompletion()");
+        logger.debug() << "SendToApplicationStep calling PostCompletion()";
 
         // The tests rely on this being the last thing that the callback does.
         m_http_context->PostCompletion(0);
@@ -121,7 +119,8 @@ StepResult WaitForResponseStep::Enter()
             msgpack::unpack(data.data(), data.length()).get().as<AsgiHttpResponseMsg>()
         );
         m_http_context->PostCompletion(0);
-        m_logger.Log(L"MessagePump gave us a message; PostCompletion() called");
+
+        logger.debug() << "MessagePump gave us a message; PostCompletion() called";
     });
 
     return kStepAsyncPending;
@@ -162,7 +161,6 @@ StepResult WriteResponseStep::Enter()
     BOOL completion_expected = FALSE;
     while (!completion_expected) {
         m_resp_chunk.DataChunkType = HttpDataChunkFromMemory;
-        m_logger.Log(std::to_wstring((ULONG)m_asgi_response_msg->content.c_str()) + L" " + std::to_wstring(m_resp_bytes_written));
         m_resp_chunk.FromMemory.pBuffer = (PVOID)(m_asgi_response_msg->content.c_str() + m_resp_bytes_written);
         m_resp_chunk.FromMemory.BufferLength = m_asgi_response_msg->content.length() - m_resp_bytes_written;
 
@@ -172,7 +170,7 @@ StepResult WriteResponseStep::Enter()
             true, false, &bytes_written, &completion_expected
         );
         if (FAILED(hr)) {
-            m_logger.Log(L"WriteEntityChunks returned hr=" + std::to_wstring(hr));
+            logger.debug() << "WriteEntityChunks() returned hr=" << hr;
             // TODO: Call some kind of Error();
             return kStepFinishRequest;
         }
@@ -197,6 +195,5 @@ StepResult WriteResponseStep::OnAsyncCompletion(HRESULT hr, DWORD num_bytes)
     // The docs suggest this is becuase IIS has buffering enabled by default.
     // For now assume our data was sent correctly.
     // Revisit this when we handle streaming responses.
-    m_logger.Log(L"WriteResponseStep::OnAsyncCompletion(); num_bytes=" + std::to_wstring(num_bytes));
     return kStepFinishRequest;
 }
