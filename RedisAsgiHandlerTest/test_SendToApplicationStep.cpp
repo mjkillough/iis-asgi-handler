@@ -35,7 +35,7 @@ public:
 
     concurrency::task<void> task;
     std::condition_variable condition_task_run;
-    std::mutex mutex_task_run;
+    mutable std::mutex mutex_task_run;
 
     MockIHttpContext http_context;
     MockResponsePump response_pump;
@@ -64,6 +64,7 @@ TEST_F(SendToApplicationStepTest, SendToChannelAndReturnsAsyncPending)
 
     EXPECT_CALL(http_context, PostCompletion(0))
         .WillOnce(SetConditionVariable(&condition));
+
     RunTask();
 
     {
