@@ -130,6 +130,15 @@ def test_asgi_http_response_body(body, site, asgi, session):
     assert resp.headers['Content-Length'] == str(len(body))
 
 
+def test_asgi_two_interleaved_http_requests(site, asgi, session):
+    future1 = session.get(site.url, data=b'1')
+    asgi_request1 = asgi.receive_request()
+    future2 = session.get(site.url, data=b'2')
+    asgi_request2 = asgi.receive_request()
+    assert asgi_request1['body'] == b'1'
+    assert asgi_request2['body'] == b'2'
+
+
 if __name__ == '__main__':
     # Should really sys.exit() this, but it causes Visual Studio
     # to eat the output. :(

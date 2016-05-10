@@ -16,9 +16,13 @@
 HttpModule::HttpModule(const HttpModuleFactory& factory, ResponsePump& response_pump, const Logger& logger)
     : m_factory(factory), m_response_pump(response_pump), logger(logger)
 {
-    m_response_pump.Start();
+    logger.debug() << "Created new HttpModule";
 }
 
+HttpModule::~HttpModule()
+{
+    logger.debug() << "Destroying HttpModule";
+}
 
 REQUEST_NOTIFICATION_STATUS HttpModule::OnAcquireRequestState(
     IHttpContext *http_context,
