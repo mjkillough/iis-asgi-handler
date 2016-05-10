@@ -130,13 +130,26 @@ def test_asgi_http_response_body(body, site, asgi, session):
     assert resp.headers['Content-Length'] == str(len(body))
 
 
-def test_asgi_two_interleaved_http_requests(site, asgi, session):
-    future1 = session.get(site.url, data=b'1')
-    asgi_request1 = asgi.receive_request()
-    future2 = session.get(site.url, data=b'2')
-    asgi_request2 = asgi.receive_request()
-    assert asgi_request1['body'] == b'1'
-    assert asgi_request2['body'] == b'2'
+# We can't do more than 10 connections on non-server editions of Windows,
+# as Windows limits the number of concurrent connections.
+# It might be worth a separate test to ensure that extra requests are queued.
+@pytest.mark.parametrize('number', [2, 4, 10])
+def test_asgi_multiple_concurrent_http_requests(number, site, asgi, session):
+    futures = []
+    for i in range(number):
+        futures.append(session.get(site.url, data=b'req%i' % i))
+    # Collect all requests after they've been issued. (We don't
+    # necessarily collect them in the order they were issued).
+    asgi_requests = [asgi.receive_request() for _ in range(number)]
+    # Echo the request's body back to it.
+    for i, asgi_request in enumerate(asgi_requests):
+        asgi_response = dict(status=200, headers=[], content=asgi_request['body'])
+        asgi.send(asgi_request['reply_channel'], asgi_response)
+    # Check each request got the appropriate response.
+    for i, future in enumerate(futures):
+        result = future.result(timeout=2)
+        assert result.status_code == 200
+        assert result.text == b'req%i' % i
 
 
 if __name__ == '__main__':

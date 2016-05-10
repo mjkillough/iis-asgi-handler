@@ -138,6 +138,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="test_Logger.cpp" />
     <ClCompile Include="test_ReadBodyStep.cpp" />
+    <ClCompile Include="test_RedisChannelLayer.cpp" />
     <ClCompile Include="test_SendToApplicationStep.cpp" />
     <ClCompile Include="test_WaitForResponseStep.cpp" />
     <ClCompile Include="test_WriteResponseStep.cpp" />

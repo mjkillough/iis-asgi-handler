@@ -21,17 +21,15 @@ typedef std::unique_ptr<redisReply, std::function<void(void*)>> RedisReply;
 class RedisChannelLayer
 {
 public:
-
     RedisChannelLayer(std::string ip = "127.0.0.1", int port = 6379, std::string prefix = "asgi:");
     virtual ~RedisChannelLayer();
 
-    virtual std::string NewChannel(std::string prefix) const;
+    virtual std::string NewChannel(std::string prefix);
     virtual concurrency::task<void> Send(const std::string& channel, AsgiHttpRequestMsg& msg);
     virtual std::tuple<std::string, std::string> ReceiveMany(const std::vector<std::string>& channels, bool blocking = false);
 
-private:
-
-    std::string GenerateUuid();
+protected:
+    std::string GenerateRandomAscii(size_t length);
 
     template<typename... Args>
     RedisReply ExecuteRedisCommand(std::string format_string, Args... args)
@@ -41,7 +39,7 @@ private:
         return wrapped_reply;
     }
 
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> m_utf8_conv;
+private:
     std::string m_prefix;
     int m_expiry; // seconds
     redisContext *m_redis_ctx;

@@ -3,7 +3,6 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <WinSock2.h>
-#include <rpc.h>
 
 #include <hiredis.h>
 #include <msgpack.hpp>
@@ -13,7 +12,7 @@
 
 
 RedisChannelLayer::RedisChannelLayer(std::string ip, int port, std::string prefix)
-    : m_redis_ctx(nullptr), m_prefix(prefix), m_expiry(60)
+    : m_redis_ctx(nullptr), m_prefix(prefix), m_expiry(60), m_random_engine(std::random_device{}())
 {
     struct timeval timeout = { 1, 500000 }; // 1.5 seconds
     m_redis_ctx = redisConnectWithTimeout(ip.c_str(), port, timeout);
@@ -35,9 +34,9 @@ RedisChannelLayer::~RedisChannelLayer()
     redisFree(m_redis_ctx);
 }
 
-std::string RedisChannelLayer::NewChannel(std::string prefix) const
+std::string RedisChannelLayer::NewChannel(std::string prefix)
 {
-    return prefix + "not_unique";
+    return prefix + GenerateRandomAscii(10);
 }
 
 concurrency::task<void> RedisChannelLayer::Send(const std::string& channel, AsgiHttpRequestMsg& msg)
@@ -48,7 +47,7 @@ concurrency::task<void> RedisChannelLayer::Send(const std::string& channel, Asgi
 
         // asgi_redis chooses to store the data in a random key, then add the key to
         // the channel. (This allows us to set the data to expire, which we do).
-        std::string data_key = m_prefix + GenerateUuid();
+        std::string data_key = m_prefix + GenerateRandomAscii(10);
         ExecuteRedisCommand("SET %s %b", data_key.c_str(), buffer.data(), buffer.size());
         ExecuteRedisCommand("EXPIRE %s %i", data_key.c_str(), m_expiry);
 
@@ -109,17 +108,11 @@ std::tuple<std::string, std::string> RedisChannelLayer::ReceiveMany(const std::v
     return std::make_tuple(channel, std::string(reply->str, reply->len));
 }
 
-std::string RedisChannelLayer::GenerateUuid()
+std::string RedisChannelLayer::GenerateRandomAscii(size_t length)
 {
-    UUID uuid = { 0 };
-    ::UuidCreate(&uuid);
-
-    // TODO: Bleh, I don't think this is right. I don't think we end
-    // up with ASCII.
-    RPC_WSTR uuid_rpc_string = nullptr;
-    ::UuidToStringW(&uuid, &uuid_rpc_string);
-    std::string uuid_string = m_utf8_conv.to_bytes((wchar_t*)&uuid_rpc_string);
-    ::RpcStringFreeW(&uuid_rpc_string);
-
-    return uuid_string;
+    static const char charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    static const size_t max_index = strlen(charset) - 1;
+    std::string random_string(length, '0');
+    std::generate_n(random_string.begin(), length, [this]() { return charset[m_random_engine() % max_index]; });
+    return random_string;
 }

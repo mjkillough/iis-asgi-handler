@@ -111,7 +111,9 @@ class _ThreadPoolExecutor(concurrent.futures.ThreadPoolExecutor):
 
 @pytest.yield_fixture
 def session(request):
-    executor = _ThreadPoolExecutor(max_workers=2)
+    # IIS on non-server OS only supports 10 concurrent connections, so there is no point
+    # starting many more workers.
+    executor = _ThreadPoolExecutor(max_workers=10)
     try:
         yield requests_futures.sessions.FuturesSession(executor)
     finally:
