@@ -10,6 +10,8 @@ using ::testing::_;
 
 TEST(LoggerTest, Basic)
 {
+    // We're using MockLogger, but this just mocks out the calls to ETW (mostly).
+    // We can still use this to test the streams, which is what we're doing here.
     MockLogger logger;
 
     std::string output;
