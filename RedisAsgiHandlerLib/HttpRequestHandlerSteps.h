@@ -101,21 +101,38 @@ class WriteResponseStep : public HttpRequestHandlerStep
 {
 public:
     WriteResponseStep(
-        HttpRequestHandler& handler, std::unique_ptr<AsgiHttpResponseMsg>& asgi_response_msg
-    ) : HttpRequestHandlerStep(handler), m_asgi_response_msg(std::move(asgi_response_msg)), m_resp_bytes_written(0)
+        HttpRequestHandler& handler, std::unique_ptr<AsgiHttpResponseMsg>& asgi_response_msg,
+        std::string reply_channel
+    ) : HttpRequestHandlerStep(handler), m_asgi_response_msg(std::move(asgi_response_msg)),
+        m_reply_channel(reply_channel), m_resp_bytes_written(0)
     { }
 
     virtual StepResult Enter();
     virtual StepResult OnAsyncCompletion(HRESULT hr, DWORD num_bytes);
 
-    virtual std::unique_ptr<HttpRequestHandlerStep> GetNextStep()
-    {
-        // This should never get called. This step should always return kStepFinishRequest.
-        throw std::runtime_error("WriteResponseStep does not have a next step.");
-    }
+    virtual std::unique_ptr<HttpRequestHandlerStep> GetNextStep();
 
 protected:
     std::unique_ptr<AsgiHttpResponseMsg> m_asgi_response_msg;
+    const std::string m_reply_channel;
     HTTP_DATA_CHUNK m_resp_chunk;
     DWORD m_resp_bytes_written;
+};
+
+
+class FlushResponseStep : public HttpRequestHandlerStep
+{
+public:
+    FlushResponseStep(
+        HttpRequestHandler& handler, std::string reply_channel
+    ) : HttpRequestHandlerStep(handler), m_reply_channel(reply_channel)
+    { }
+
+    virtual StepResult Enter();
+    virtual StepResult OnAsyncCompletion(HRESULT hr, DWORD num_bytes);
+
+    virtual std::unique_ptr<HttpRequestHandlerStep> GetNextStep();
+
+protected:
+    const std::string m_reply_channel;
 };

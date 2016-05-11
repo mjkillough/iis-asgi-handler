@@ -36,7 +36,7 @@ TEST_F(WriteResponseStepTest, ReturnedFinishedOnError)
 {
     auto msg = std::make_unique<AsgiHttpResponseMsg>();
     msg->content = "some content";
-    WriteResponseStep step(handler, std::move(msg));
+    WriteResponseStep step(handler, std::move(msg), "");
 
     EXPECT_CALL(response, WriteEntityChunks(_, _, _, _, _, _))
         .WillOnce(Return(E_ACCESSDENIED));
@@ -49,7 +49,7 @@ TEST_F(WriteResponseStepTest, ReturnsAsyncPending)
 {
     auto msg = std::make_unique<AsgiHttpResponseMsg>();
     msg->content = "some content";
-    WriteResponseStep step(handler, std::move(msg));
+    WriteResponseStep step(handler, std::move(msg), "");
 
     EXPECT_CALL(response, WriteEntityChunks(_, _, _, _, _, _))
         .WillOnce(DoAll(
@@ -63,11 +63,11 @@ TEST_F(WriteResponseStepTest, ReturnsAsyncPending)
 
 // If we repeatedly get completion_expected==FALSE, we might
 // finish this step without ever explicitly calling OnAsyncCompletion.
-TEST_F(WriteResponseStepTest, RerunsEnterUntilFinished)
+TEST_F(WriteResponseStepTest, HandlesCompletionExpectedFalse)
 {
     auto msg = std::make_unique<AsgiHttpResponseMsg>();
     msg->content = "some content";
-    WriteResponseStep step(handler, std::move(msg));
+    WriteResponseStep step(handler, std::move(msg), "");
 
     // Right now OnAsyncCompletion() will always return kStepFinishRequest,
     // as we ignore the num_bytes. (See comments there).
@@ -98,7 +98,18 @@ TEST_F(WriteResponseStepTest, OnAsyncCompletionNoMoreToWrite)
 {
     auto msg = std::make_unique<AsgiHttpResponseMsg>();
     msg->content = "some content";
-    WriteResponseStep step(handler, std::move(msg));
+    WriteResponseStep step(handler, std::move(msg), "");
 
     EXPECT_EQ(kStepFinishRequest, step.OnAsyncCompletion(S_OK, 12));
+}
+
+
+TEST_F(WriteResponseStepTest, OnAsyncCompletionChunkedResponse)
+{
+    auto msg = std::make_unique<AsgiHttpResponseMsg>();
+    msg->content = "some content";
+    msg->more_content = true;
+    WriteResponseStep step(handler, std::move(msg), "reply_channel");
+
+    EXPECT_EQ(kStepGotoNext, step.OnAsyncCompletion(S_OK, 12));
 }

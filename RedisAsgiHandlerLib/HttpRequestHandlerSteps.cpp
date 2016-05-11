@@ -129,15 +129,21 @@ StepResult WaitForResponseStep::Enter()
 StepResult WaitForResponseStep::OnAsyncCompletion(HRESULT hr, DWORD num_bytes)
 {
     IHttpResponse *response = m_http_context->GetResponse();
-    response->Clear();
-    response->SetStatus(m_asgi_response_msg->status, ""); // Can we pass nullptr for the reason?
+
+    // Only set the .status / .headers if the ASGI response contained them. We
+    // don't distinguish between 'Response' and 'Response Chunk' in the ASGI spec.
+    // We assume a streamed response sets the status and headers in the first message
+    // but we do not enforce it.
+    if (m_asgi_response_msg->status > 0) {
+        response->SetStatus(m_asgi_response_msg->status, "");
+    }
     for (auto header : m_asgi_response_msg->headers) {
         std::string header_name = std::get<0>(header);
         std::string header_value = std::get<1>(header);
         response->SetHeader(header_name.c_str(), header_value.c_str(), header_value.length(), true);
     }
 
-    if (m_asgi_response_msg->content.length() == 0) {
+    if (m_asgi_response_msg->content.length() == 0 && !m_asgi_response_msg->more_content) {
         return kStepFinishRequest;
     }
 
@@ -146,16 +152,24 @@ StepResult WaitForResponseStep::OnAsyncCompletion(HRESULT hr, DWORD num_bytes)
 
 std::unique_ptr<HttpRequestHandlerStep> WaitForResponseStep::GetNextStep()
 {
+    // If the first chunk in a streaming response without data, then we want
+    // to flush the headers to the client before we wait for more data from
+    // the application.
+    if (m_asgi_response_msg->content.length() == 0 && m_asgi_response_msg->more_content) {
+        return std::make_unique<FlushResponseStep>(m_handler, m_reply_channel);
+    }
+
+    // We tell WriteResponseStep the reply_channel, in case this is a
+    // streaming response and it needs to go back to waiting for a
+    // response.
     return std::make_unique<WriteResponseStep>(
-        m_handler, std::move(m_asgi_response_msg)
+        m_handler, std::move(m_asgi_response_msg), m_reply_channel
     );
 }
 
 
 StepResult WriteResponseStep::Enter()
 {
-    // TODO: Handle streaming responses.
-
     IHttpResponse* response = m_http_context->GetResponse();
 
     BOOL completion_expected = FALSE;
@@ -192,8 +206,72 @@ StepResult WriteResponseStep::Enter()
 StepResult WriteResponseStep::OnAsyncCompletion(HRESULT hr, DWORD num_bytes)
 {
     // num_bytes is always 0, whether the operation completed sync or async.
-    // The docs suggest this is becuase IIS has buffering enabled by default.
-    // For now assume our data was sent correctly.
-    // Revisit this when we handle streaming responses.
+    // This is because IIS has our data buffered. We are safe to destroy
+    // m_asgi_response_msg.
+
+    // If there's more data to send, explicitly flush the data (as the client
+    // may be waiting for the initial chunk of the response) before waiting
+    // for the application to send us more data.
+    if (m_asgi_response_msg->more_content) {
+        return kStepGotoNext;
+    }
+
+    // If this was the final chunk, finish the request. There's no need to
+    // explicitly flush the request. IIS will do that for us.
     return kStepFinishRequest;
+}
+
+std::unique_ptr<HttpRequestHandlerStep> WriteResponseStep::GetNextStep()
+{
+    if (m_asgi_response_msg->more_content) {
+        // We must flush this response data before going to wait for more.
+        return std::make_unique<FlushResponseStep>(m_handler, m_reply_channel);
+    }
+
+    // We should never reach here.
+    throw std::runtime_error("WriteResponseStep does not have a next step.");
+}
+
+StepResult FlushResponseStep::Enter()
+{
+    IHttpResponse* response = m_http_context->GetResponse();
+
+    BOOL completion_expected = FALSE;
+    while (!completion_expected) {
+        DWORD bytes_flushed;
+        HRESULT hr = response->Flush(
+            true, true, &bytes_flushed, &completion_expected
+        );
+        if (FAILED(hr)) {
+            logger.debug() << "Flush() returned hr=" << hr;
+            // TODO: Call some kind of Error();
+            return kStepFinishRequest;
+        }
+
+        if (!completion_expected) {
+            // Operation completed synchronously.
+            auto result = OnAsyncCompletion(S_OK, bytes_flushed);
+            // If we need to flush more, we might as well do that here, rather than
+            // yielding back to the request loop.
+            if (result != kStepRerun) {
+                return result;
+            }
+        }
+    }
+
+    return kStepAsyncPending;
+}
+
+StepResult FlushResponseStep::OnAsyncCompletion(HRESULT hr, DWORD num_bytes)
+{
+    // We don't actually know how big the request is (headers and body), so
+    // there's nothing we can usefully do with num_bytes.
+    return kStepGotoNext;
+}
+
+std::unique_ptr<HttpRequestHandlerStep> FlushResponseStep::GetNextStep()
+{
+    // Go back to waiting for the application to send us more data. This
+    // step is only called if more_content=True in the ASGI response.
+    return std::make_unique<WaitForResponseStep>(m_handler, m_reply_channel);
 }

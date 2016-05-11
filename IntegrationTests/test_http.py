@@ -9,6 +9,7 @@ import time
 import urllib
 
 import pytest
+import requests
 
 
 @pytest.mark.parametrize('method', ['GET', 'GeT', 'POST', 'PUT'])
@@ -150,6 +151,33 @@ def test_asgi_multiple_concurrent_http_requests(number, site, asgi, session):
         result = future.result(timeout=2)
         assert result.status_code == 200
         assert result.text == b'req%i' % i
+
+
+def test_asgi_streaming_response(site, asgi, session):
+    future = session.get(site.url, stream=True)
+    asgi_request = asgi.receive_request()
+    channel = asgi_request['reply_channel']
+    # Send first response with a status code
+    asgi.send(channel, dict(status=200, more_content=True))
+
+    # Now send a few chunks.
+    chunks = [b'chunk%i' % i for i in range(5)]
+    for chunk in chunks:
+        asgi.send(channel, dict(content=chunk, more_content=True))
+
+    # Check we've received the chunks.
+    resp = future.result(timeout=2)
+    resp_chunks = resp.iter_content(chunk_size=len(chunks[0]))
+    for chunk in chunks:
+        assert resp_chunks.next() == chunk
+
+    # Send another, to check we still can.
+    final_chunk = b'chunk%i' % len(chunks)
+    asgi.send(channel, dict(content=final_chunk, more_content=False))
+    assert resp_chunks.next() == final_chunk
+    # ... and fin. Check the connection is closed.
+    with pytest.raises(StopIteration):
+        resp_chunks.next()
 
 
 if __name__ == '__main__':

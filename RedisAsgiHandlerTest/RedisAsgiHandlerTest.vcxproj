@@ -136,6 +136,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="test_FlushResponseStep.cpp" />
     <ClCompile Include="test_Logger.cpp" />
     <ClCompile Include="test_ReadBodyStep.cpp" />
     <ClCompile Include="test_RedisChannelLayer.cpp" />
