@@ -9,7 +9,7 @@ HRESULT __stdcall RegisterModule(
 {
     auto factory = new HttpModuleFactory(moduleInfo->GetId());
     HRESULT hr = moduleInfo->SetRequestNotifications(
-        factory, RQ_ACQUIRE_REQUEST_STATE, 0
+        factory, RQ_EXECUTE_REQUEST_HANDLER, 0
     );
 
 	return S_OK;

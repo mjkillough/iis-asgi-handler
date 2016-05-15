@@ -9,7 +9,6 @@ import time
 import urllib
 
 import pytest
-import requests
 
 
 @pytest.mark.parametrize('method', ['GET', 'GeT', 'POST', 'PUT'])
@@ -183,4 +182,4 @@ def test_asgi_streaming_response(site, asgi, session):
 if __name__ == '__main__':
     # Should really sys.exit() this, but it causes Visual Studio
     # to eat the output. :(
-    pytest.main(['--ignore', 'env1/'])
+    pytest.main(['--ignore', 'env1/', '-x'])

@@ -37,6 +37,9 @@
     <Compile Include="fixtures\etw.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="test_config.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="test_http.py" />
     <Compile Include="fixtures\__init__.py">
       <SubType>Code</SubType>

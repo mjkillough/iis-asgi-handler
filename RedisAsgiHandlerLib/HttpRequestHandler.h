@@ -19,7 +19,7 @@ public:
         delete this;
     }
 
-    virtual REQUEST_NOTIFICATION_STATUS OnAcquireRequestState();
+    virtual REQUEST_NOTIFICATION_STATUS OnExecuteRequestHandler();
     virtual REQUEST_NOTIFICATION_STATUS OnAsyncCompletion(IHttpCompletionInfo* completion_info);
 
 protected:

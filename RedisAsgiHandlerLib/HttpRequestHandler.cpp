@@ -72,7 +72,7 @@ HttpRequestHandler::HttpRequestHandler(
 {
 }
 
-REQUEST_NOTIFICATION_STATUS HttpRequestHandler::OnAcquireRequestState()
+REQUEST_NOTIFICATION_STATUS HttpRequestHandler::OnExecuteRequestHandler()
 {
     IHttpRequest *request = m_http_context->GetRequest();
     HTTP_REQUEST *raw_request = request->GetRawHttpRequest();

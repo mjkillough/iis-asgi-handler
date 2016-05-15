@@ -24,18 +24,18 @@ HttpModule::~HttpModule()
     logger.debug() << "Destroying HttpModule";
 }
 
-REQUEST_NOTIFICATION_STATUS HttpModule::OnAcquireRequestState(
+REQUEST_NOTIFICATION_STATUS HttpModule::OnExecuteRequestHandler(
     IHttpContext *http_context,
     IHttpEventProvider *provider
 )
 {
-    logger.debug() << "HttpModule::OnAcquireRequestState()";
+    logger.debug() << "HttpModule::OnExecuteRequestHandler()";
 
     // Freed by IIS when the IHttpContext is destroyed, via StoredRequestContext::CleanupStoredContext()
     auto request_handler = new HttpRequestHandler(m_response_pump, m_channels, logger, http_context);
     http_context->GetModuleContextContainer()->SetModuleContext(request_handler, m_factory.module_id());
 
-    return request_handler->OnAcquireRequestState();
+    return request_handler->OnExecuteRequestHandler();
 }
 
 REQUEST_NOTIFICATION_STATUS HttpModule::OnAsyncCompletion(

@@ -57,7 +57,7 @@ def install_iis_module(etw_consumer):
         # to re-install the module.
         uninstall_module()
 
-_Site = collections.namedtuple('_Site', ('url', 'https_url'))
+_Site = collections.namedtuple('_Site', ('url', 'https_url', 'static_path'))
 @pytest.yield_fixture
 def site(tmpdir, install_iis_module):
     pool_name = 'asgi-test-pool'
@@ -65,9 +65,40 @@ def site(tmpdir, install_iis_module):
     http_port = 90
     https_port = 91
     try:
+        # Create a web.config which sends most requests through
+        # our handler. We create a subdirectory that serves static files
+        # so that we can test our handler doesn't get in the way
+        # of others.
+        webconfig = tmpdir.join('web.config')
+        webconfig.write("""
+            <configuration>
+                <system.webServer>
+                    <handlers>
+                        <clear />
+                        <add
+                            name="StaticFile"
+                            path="static.html"
+                            verb="*"
+                            modules="StaticFileModule"
+                            resourceType="File"
+                        />
+                        <add
+                            name="RedisAsgiHandler"
+                            path="*"
+                            verb="*"
+                            modules="RedisAsgiHandler"
+                        />
+                    </handlers>
+                </system.webServer>
+            </configuration>
+        """)
+        staticfile = tmpdir.join('static.html')
+        staticfile.write('Hello, world!')
         # Ensure IIS can read the directory. Use icacls to avoid introducing
         # pywin32 dependency.
         subprocess.check_call(['icacls', str(tmpdir), '/grant', 'Users:R'])
+        subprocess.check_call(['icacls', str(webconfig), '/grant', 'Users:R'])
+        subprocess.check_call(['icacls', str(staticfile), '/grant', 'Users:R'])
         # Add the site with its own app pool. Failing tests can cause the
         # pool to stop, so we create a new one for each test.
         appcmd('add', 'apppool', '/name:' + pool_name)
@@ -77,7 +108,12 @@ def site(tmpdir, install_iis_module):
             '/physicalPath:' + str(tmpdir),
         )
         appcmd('set', 'app', site_name + '/', '/applicationPool:' + pool_name)
-        yield _Site('http://localhost:%i' % http_port, 'https://localhost:%i' % https_port)
+        appcmd('unlock', 'config', '-section:system.webServer/handlers')
+        yield _Site(
+            'http://localhost:%i' % http_port,
+            'https://localhost:%i' % https_port,
+            '/static.html'
+        )
     finally:
         appcmd('delete', 'apppool', pool_name)
         appcmd('delete', 'site', site_name)
@@ -95,6 +131,10 @@ def asgi():
             return asgi_request
         def send(self, channel, msg):
             self.channels.send(channel, msg)
+        def assert_empty(self):
+            channel, asgi_request = self.channels.receive_many(['http.request'], block=False)
+            assert channel == None
+            assert asgi_request == None
     return _ChannelsWrapper(asgi_redis.RedisChannelLayer())
 
 

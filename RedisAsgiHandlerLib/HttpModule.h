@@ -14,7 +14,7 @@ public:
     HttpModule(const HttpModuleFactory& factory, ResponsePump& response_pump, const Logger& logger);
     ~HttpModule();
 
-    virtual REQUEST_NOTIFICATION_STATUS OnAcquireRequestState(
+    virtual REQUEST_NOTIFICATION_STATUS OnExecuteRequestHandler(
         IHttpContext* httpContext, IHttpEventProvider* provider
     );
 
