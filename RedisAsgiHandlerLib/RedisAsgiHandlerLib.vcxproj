@@ -157,6 +157,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="RequestHandler.cpp" />
     <ClCompile Include="HttpModule.cpp" />
     <ClCompile Include="HttpModuleFactory.cpp" />
     <ClCompile Include="HttpRequestHandlerSteps.cpp" />
@@ -174,6 +175,7 @@
     <ClInclude Include="Logger.h" />
     <ClInclude Include="RedisChannelLayer.h" />
     <ClInclude Include="HttpRequestHandler.h" />
+    <ClInclude Include="RequestHandler.h" />
     <ClInclude Include="ResponsePump.h" />
   </ItemGroup>
   <ItemGroup>

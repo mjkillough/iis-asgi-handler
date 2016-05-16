@@ -7,10 +7,8 @@
 #include "HttpModule.h"
 
 #include "HttpModuleFactory.h"
-#include "AsgiHttpResponseMsg.h"
+#include "RequestHandler.h"
 #include "HttpRequestHandler.h"
-#include "ResponsePump.h"
-#include "Logger.h"
 
 
 HttpModule::HttpModule(const HttpModuleFactory& factory, ResponsePump& response_pump, const Logger& logger)
@@ -32,7 +30,7 @@ REQUEST_NOTIFICATION_STATUS HttpModule::OnExecuteRequestHandler(
     logger.debug() << "HttpModule::OnExecuteRequestHandler()";
 
     // Freed by IIS when the IHttpContext is destroyed, via StoredRequestContext::CleanupStoredContext()
-    auto request_handler = new HttpRequestHandler(m_response_pump, m_channels, logger, http_context);
+    RequestHandler *request_handler = new HttpRequestHandler(m_response_pump, m_channels, logger, http_context);
     http_context->GetModuleContextContainer()->SetModuleContext(request_handler, m_factory.module_id());
 
     return request_handler->OnExecuteRequestHandler();
@@ -46,7 +44,7 @@ REQUEST_NOTIFICATION_STATUS HttpModule::OnAsyncCompletion(
     logger.debug() << "HttpModule::OnAsyncCompletion()";
 
     // TODO: Assert we have a HttpRequestHandler in the context container?
-    auto request_handler = static_cast<HttpRequestHandler*>(
+    auto request_handler = static_cast<RequestHandler*>(
         http_context->GetModuleContextContainer()->GetModuleContext(m_factory.module_id())
     );
 
