@@ -11,8 +11,40 @@
 #include "Logger.h"
 
 
+enum StepResult {
+    kStepAsyncPending,
+    kStepRerun, // Re-Enter()s the same state.
+    kStepGotoNext, // Causes us to call GetNextStep().
+    kStepFinishRequest
+};
+
+
+class RequestHandler;
+
+
+class RequestHandlerStep
+{
+public:
+    RequestHandlerStep(RequestHandler& handler);
+
+    virtual StepResult Enter() = 0;
+    virtual StepResult OnAsyncCompletion(HRESULT hr, DWORD num_bytes) = 0;
+    virtual std::unique_ptr<RequestHandlerStep> GetNextStep() = 0;
+
+protected:
+    RequestHandler& m_handler;
+    // Expose some of m_handler's protected members here, so that they are
+    // accessible from Step subclasses.
+    const Logger& logger;
+    IHttpContext* m_http_context;
+    ResponsePump& m_response_pump;
+    RedisChannelLayer& m_channels;
+};
+
+
 class RequestHandler : public IHttpStoredContext
 {
+    friend class RequestHandlerStep;
 public:
     RequestHandler::RequestHandler(
         ResponsePump& response_pump, RedisChannelLayer& channels, const Logger& logger, IHttpContext* http_context

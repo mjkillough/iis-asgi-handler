@@ -61,6 +61,13 @@ namespace {
 } // end anonymous namespace
 
 
+RequestHandlerStep::RequestHandlerStep(RequestHandler& handler)
+    : m_handler(handler), m_http_context(handler.m_http_context),
+      logger(handler.logger), m_response_pump(handler.m_response_pump),
+      m_channels(handler.m_channels)
+{ }
+
+
 std::string RequestHandler::GetRequestHttpVersion(const IHttpRequest* request)
 {
     USHORT http_ver_major, http_ver_minor;

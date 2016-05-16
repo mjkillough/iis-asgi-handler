@@ -6,7 +6,6 @@
 
 class HttpRequestHandler : public RequestHandler
 {
-    friend class HttpRequestHandlerStep;
 public:
     using RequestHandler::RequestHandler;
 
@@ -17,5 +16,5 @@ protected:
     bool ReturnError(USHORT status = 500, const std::string& reason = "");
     REQUEST_NOTIFICATION_STATUS HandlerStateMachine(StepResult result);
 
-    std::unique_ptr<HttpRequestHandlerStep> m_current_step;
+    std::unique_ptr<RequestHandlerStep> m_current_step;
 };

@@ -12,13 +12,6 @@
 #include "HttpRequestHandler.h"
 
 
-HttpRequestHandlerStep::HttpRequestHandlerStep(HttpRequestHandler & handler)
-    : m_handler(handler), m_http_context(handler.m_http_context),
-      logger(handler.logger), m_response_pump(handler.m_response_pump),
-      m_channels(handler.m_channels)
-{ }
-
-
 StepResult ReadBodyStep::Enter()
 {
     IHttpRequest* request = m_http_context->GetRequest();
@@ -74,7 +67,7 @@ StepResult ReadBodyStep::OnAsyncCompletion(HRESULT hr, DWORD num_bytes)
     return kStepGotoNext;
 }
 
-std::unique_ptr<HttpRequestHandlerStep> ReadBodyStep::GetNextStep()
+std::unique_ptr<RequestHandlerStep> ReadBodyStep::GetNextStep()
 {
     return std::make_unique<SendToApplicationStep>(
         m_handler, std::move(m_asgi_request_msg)
@@ -103,7 +96,7 @@ StepResult SendToApplicationStep::OnAsyncCompletion(HRESULT hr, DWORD num_bytes)
     return kStepGotoNext;
 }
 
-std::unique_ptr<HttpRequestHandlerStep> SendToApplicationStep::GetNextStep()
+std::unique_ptr<RequestHandlerStep> SendToApplicationStep::GetNextStep()
 {
     return std::make_unique<WaitForResponseStep>(
         m_handler, m_asgi_request_msg->reply_channel
@@ -150,7 +143,7 @@ StepResult WaitForResponseStep::OnAsyncCompletion(HRESULT hr, DWORD num_bytes)
     return kStepGotoNext;
 }
 
-std::unique_ptr<HttpRequestHandlerStep> WaitForResponseStep::GetNextStep()
+std::unique_ptr<RequestHandlerStep> WaitForResponseStep::GetNextStep()
 {
     // If the first chunk in a streaming response without data, then we want
     // to flush the headers to the client before we wait for more data from
@@ -221,7 +214,7 @@ StepResult WriteResponseStep::OnAsyncCompletion(HRESULT hr, DWORD num_bytes)
     return kStepFinishRequest;
 }
 
-std::unique_ptr<HttpRequestHandlerStep> WriteResponseStep::GetNextStep()
+std::unique_ptr<RequestHandlerStep> WriteResponseStep::GetNextStep()
 {
     if (m_asgi_response_msg->more_content) {
         // We must flush this response data before going to wait for more.
@@ -269,7 +262,7 @@ StepResult FlushResponseStep::OnAsyncCompletion(HRESULT hr, DWORD num_bytes)
     return kStepGotoNext;
 }
 
-std::unique_ptr<HttpRequestHandlerStep> FlushResponseStep::GetNextStep()
+std::unique_ptr<RequestHandlerStep> FlushResponseStep::GetNextStep()
 {
     // Go back to waiting for the application to send us more data. This
     // step is only called if more_content=True in the ASGI response.
