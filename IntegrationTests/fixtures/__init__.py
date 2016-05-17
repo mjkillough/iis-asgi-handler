@@ -57,7 +57,7 @@ def install_iis_module(etw_consumer):
         # to re-install the module.
         uninstall_module()
 
-_Site = collections.namedtuple('_Site', ('url', 'https_url', 'static_path'))
+_Site = collections.namedtuple('_Site', ('url', 'https_url', 'ws_url', 'static_path'))
 @pytest.yield_fixture
 def site(tmpdir, install_iis_module):
     pool_name = 'asgi-test-pool'
@@ -112,6 +112,7 @@ def site(tmpdir, install_iis_module):
         yield _Site(
             'http://localhost:%i' % http_port,
             'https://localhost:%i' % https_port,
+            'ws://localhost:%i' % http_port,
             '/static.html'
         )
     finally:

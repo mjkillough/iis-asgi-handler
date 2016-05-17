@@ -44,6 +44,7 @@
     <Compile Include="fixtures\__init__.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="test_ws.py" />
   </ItemGroup>
   <ItemGroup>
     <Interpreter Include="env1\">

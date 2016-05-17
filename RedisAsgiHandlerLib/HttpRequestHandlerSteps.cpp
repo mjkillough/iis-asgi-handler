@@ -5,6 +5,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <httpserv.h>
+#include <ppltasks.h>
 
 #include "msgpack.hpp"
 
@@ -78,10 +79,12 @@ std::unique_ptr<RequestHandlerStep> ReadBodyStep::GetNextStep()
 StepResult SendToApplicationStep::Enter()
 {
     // TODO: Split into chunked messages.
-    auto task = m_channels.Send("http.request", *m_asgi_request_msg);
-    task.then([this]() {
+    auto task = concurrency::create_task([this]() {
+        msgpack::sbuffer buffer;
+        msgpack::pack(buffer, *m_asgi_request_msg);
+        m_channels.Send("http.request", buffer);
+    }).then([this]() {
         logger.debug() << "SendToApplicationStep calling PostCompletion()";
-
         // The tests rely on this being the last thing that the callback does.
         m_http_context->PostCompletion(0);
     });

@@ -1,4 +1,5 @@
 #pragma once
+#define WIN32_LEAN_AND_MEAN
 
 #include <functional>
 #include <iostream>
@@ -6,13 +7,8 @@
 #include <codecvt>
 #include <random>
 
-#define WIN32_LEAN_AND_MEAN
-#include <ppltasks.h>
-
+#include <msgpack.hpp>
 #include <hiredis.h>
-
-
-class AsgiHttpRequestMsg;
 
 
 typedef std::unique_ptr<redisReply, std::function<void(void*)>> RedisReply;
@@ -25,7 +21,7 @@ public:
     virtual ~RedisChannelLayer();
 
     virtual std::string NewChannel(std::string prefix);
-    virtual concurrency::task<void> Send(const std::string& channel, AsgiHttpRequestMsg& msg);
+    virtual void Send(const std::string& channel, const msgpack::sbuffer& buffer);
     virtual std::tuple<std::string, std::string> ReceiveMany(const std::vector<std::string>& channels, bool blocking = false);
 
 protected:

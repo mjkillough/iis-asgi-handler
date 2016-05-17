@@ -21,21 +21,7 @@ public:
     SendToApplicationStepTest()
         : handler(response_pump, &http_context), msg(std::make_unique<AsgiHttpRequestMsg>()),
           step(handler, msg)
-    {
-        task = concurrency::create_task([this]() {
-            std::unique_lock<std::mutex> lock(mutex_task_run);
-            condition_task_run.wait(lock);
-        });
-    }
-
-    void RunTask()
-    {
-        condition_task_run.notify_all();
-    }
-
-    concurrency::task<void> task;
-    std::condition_variable condition_task_run;
-    mutable std::mutex mutex_task_run;
+    { }
 
     MockIHttpContext http_context;
     MockResponsePump response_pump;
@@ -58,14 +44,12 @@ TEST_F(SendToApplicationStepTest, SendToChannelAndReturnsAsyncPending)
     std::mutex mutex;
 
     EXPECT_CALL(handler.channels, Send("http.request", _))
-        .WillOnce(Return(task));
+        .Times(1);
 
     EXPECT_EQ(kStepAsyncPending, step.Enter());
 
     EXPECT_CALL(http_context, PostCompletion(0))
         .WillOnce(SetConditionVariable(&condition));
-
-    RunTask();
 
     {
         std::unique_lock<std::mutex> lock(mutex);

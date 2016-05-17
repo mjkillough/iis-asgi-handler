@@ -68,6 +68,40 @@ RequestHandlerStep::RequestHandlerStep(RequestHandler& handler)
 { }
 
 
+REQUEST_NOTIFICATION_STATUS RequestHandler::HandlerStateMachine(std::unique_ptr<RequestHandlerStep>& step, StepResult result)
+{
+    // This won't loop forever. We expect to return AsyncPending fairly often.
+    while (true) {
+        switch (result) {
+        case kStepAsyncPending:
+            return RQ_NOTIFICATION_PENDING;
+        case kStepFinishRequest:
+            return RQ_NOTIFICATION_FINISH_REQUEST;
+        case kStepRerun: {
+
+            logger.debug() << typeid(*step.get()).name() << "->Enter() being called";
+            result = step->Enter();
+            logger.debug() << typeid(*step.get()).name() << "->Enter() = " << result;
+
+            break;
+        }
+        case kStepGotoNext: {
+
+            logger.debug() << typeid(*step.get()).name() << "->GetNextStep() being called";
+            step = step->GetNextStep();
+
+            logger.debug() << typeid(*step.get()).name() << "->Enter() being called";
+            result = step->Enter();
+            logger.debug() << typeid(*step.get()).name() << "->Enter() = " << result;
+
+            break;
+        }
+        }
+    }
+    // Never reached.
+}
+
+
 std::string RequestHandler::GetRequestHttpVersion(const IHttpRequest* request)
 {
     USHORT http_ver_major, http_ver_minor;
@@ -78,6 +112,7 @@ std::string RequestHandler::GetRequestHttpVersion(const IHttpRequest* request)
     }
     return http_version;
 }
+
 
 std::string RequestHandler::GetRequestScheme(const HTTP_REQUEST* raw_request)
 {
@@ -94,6 +129,7 @@ std::string RequestHandler::GetRequestScheme(const HTTP_REQUEST* raw_request)
     std::wstring_convert<std::codecvt_utf8<wchar_t>> utf8_conv;
     return utf8_conv.to_bytes(scheme_w);
 }
+
 
 std::string RequestHandler::GetRequestPath(const HTTP_REQUEST* raw_request)
 {
@@ -112,6 +148,7 @@ std::string RequestHandler::GetRequestQueryString(const HTTP_REQUEST* raw_reques
         raw_request->CookedUrl.QueryStringLength / sizeof(wchar_t)
     ));
 }
+
 
 std::vector<std::tuple<std::string, std::string>> RequestHandler::GetRequestHeaders(const HTTP_REQUEST* raw_request)
 {

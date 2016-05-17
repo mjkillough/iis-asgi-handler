@@ -58,6 +58,8 @@ public:
     virtual REQUEST_NOTIFICATION_STATUS OnAsyncCompletion(IHttpCompletionInfo* completion_info) = 0;
 
 protected:
+    REQUEST_NOTIFICATION_STATUS HandlerStateMachine(std::unique_ptr<RequestHandlerStep>& step, StepResult result);
+
     IHttpContext* m_http_context;
     ResponsePump& m_response_pump;
     const Logger& logger;

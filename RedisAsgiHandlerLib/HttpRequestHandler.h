@@ -14,7 +14,6 @@ public:
 
 protected:
     bool ReturnError(USHORT status = 500, const std::string& reason = "");
-    REQUEST_NOTIFICATION_STATUS HandlerStateMachine(StepResult result);
 
     std::unique_ptr<RequestHandlerStep> m_current_step;
 };

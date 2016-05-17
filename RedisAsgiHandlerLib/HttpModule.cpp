@@ -9,6 +9,7 @@
 #include "HttpModuleFactory.h"
 #include "RequestHandler.h"
 #include "HttpRequestHandler.h"
+#include "WsRequestHandler.h"
 
 
 HttpModule::HttpModule(const HttpModuleFactory& factory, ResponsePump& response_pump, const Logger& logger)
@@ -30,7 +31,18 @@ REQUEST_NOTIFICATION_STATUS HttpModule::OnExecuteRequestHandler(
     logger.debug() << "HttpModule::OnExecuteRequestHandler()";
 
     // Freed by IIS when the IHttpContext is destroyed, via StoredRequestContext::CleanupStoredContext()
-    RequestHandler *request_handler = new HttpRequestHandler(m_response_pump, m_channels, logger, http_context);
+    RequestHandler *request_handler = nullptr;
+
+    USHORT upgrade_header_length = 0;
+    http_context->GetRequest()->GetHeader(HttpHeaderUpgrade, &upgrade_header_length);
+    if (upgrade_header_length > 0) {
+        logger.debug() << "Creating new WsRequestHandler";
+        request_handler = new WsRequestHandler(m_response_pump, m_channels, logger, http_context);
+    } else {
+        logger.debug() << "Creating new HttpRequestHandler";
+        request_handler = new HttpRequestHandler(m_response_pump, m_channels, logger, http_context);
+    }
+
     http_context->GetModuleContextContainer()->SetModuleContext(request_handler, m_factory.module_id());
 
     return request_handler->OnExecuteRequestHandler();

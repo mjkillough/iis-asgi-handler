@@ -3,7 +3,9 @@
 #include <msgpack.hpp>
 
 
-struct AsgiHttpRequestMsg {
+class AsgiHttpRequestMsg
+{
+public:
     std::string reply_channel;
     std::string http_version;
     std::string method;
