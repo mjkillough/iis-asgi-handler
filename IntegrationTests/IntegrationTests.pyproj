@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>9c4d5e4f-835a-4dce-a277-f75097c81454</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>test_http.py</StartupFile>
+    <StartupFile>test_ws.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
