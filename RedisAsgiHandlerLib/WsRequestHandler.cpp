@@ -163,18 +163,27 @@ void WsReadPump::ReadAsync()
 
 void WsReadPump::ReadAsyncComplete(HRESULT hr, DWORD num_bytes, BOOL utf8, BOOL final_fragment, BOOL close)
 {
-    logger.debug() << "ReadAsyncComplete()";
+    logger.debug() << "ReadAsyncComplete() " << num_bytes << "  " << utf8 << " " << final_fragment << " " << close;
 
     if (FAILED(hr)) {
         logger.debug() << "ReadAsyncComplete() hr = " << hr;
         // TODO: Figure out how to propogate an error from here.
     }
+    // TODO: Handle close.
 
-    logger.debug() << "ReadAsyncComplete() " << num_bytes << "  " << utf8 << " " << final_fragment << " " << close;
     m_msg.data_size += num_bytes;
-    // TODO: Resize the buffer if the message is not complete and we're almost
-    // at the end of the buffer.
-    SendToApplicationAsync();
+    m_msg.utf8 = utf8;
+
+    if (final_fragment) {
+        // Don't bother re-sizing the buffer to the correct size before sending.
+        // The msgpack serializer will take care of it.
+        SendToApplicationAsync();
+    } else {
+        // If we're almost at the end of the buffer, increase the buffer size.
+        if (m_msg.data_size >= (m_msg.data.size() - AsgiWsReceiveMsg::BUFFER_CHUNK_INCREASE_THRESHOLD)) {
+            m_msg.data.resize(m_msg.data.size() + AsgiWsReceiveMsg::BUFFER_CHUNK_SIZE);
+        }
+    }
 }
 
 void WsReadPump::SendToApplicationAsync()
