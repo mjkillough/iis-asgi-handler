@@ -172,6 +172,7 @@
   <ItemGroup>
     <ClInclude Include="AsgiHttpResponseMsg.h" />
     <ClInclude Include="AsgiMsg.h" />
+    <ClInclude Include="AsgiWsConnectMsg.h" />
     <ClInclude Include="AsgiWsReceiveMsg.h" />
     <ClInclude Include="HttpModule.h" />
     <ClInclude Include="HttpModuleFactory.h" />

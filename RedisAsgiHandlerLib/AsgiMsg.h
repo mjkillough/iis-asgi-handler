@@ -13,4 +13,11 @@ protected:
         packer.pack_str(str.length());
         packer.pack_str_body(str.c_str(), str.length());
     }
+
+    template <typename Packer>
+    static void pack_bytestring(Packer& packer, const std::string& str)
+    {
+        packer.pack_bin(str.length());
+        packer.pack_bin_body(str.c_str(), str.length());
+    }
 };

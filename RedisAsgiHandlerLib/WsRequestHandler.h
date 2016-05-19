@@ -33,4 +33,6 @@ protected:
     std::unique_ptr<RequestHandlerStep> m_current_connect_step;
 
     WsReader m_reader;
+    std::string m_reply_channel;
+    std::string m_request_path;
 };

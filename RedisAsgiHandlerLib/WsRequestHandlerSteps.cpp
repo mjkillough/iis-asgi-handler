@@ -8,7 +8,6 @@
 
 #include "WsRequestHandlerSteps.h"
 #include "RequestHandler.h"
-#include "AsgiHttpRequestMsg.h"
 
 
 // Connection Pipeline - AcceptWebSocketStep
@@ -46,7 +45,7 @@ StepResult AcceptWebSocketStep::OnAsyncCompletion(HRESULT hr, DWORD num_bytes)
 
 std::unique_ptr<RequestHandlerStep> AcceptWebSocketStep::GetNextStep()
 {
-    return std::make_unique<SendConnectToApplicationStep>(m_handler);
+    return std::make_unique<SendConnectToApplicationStep>(m_handler, std::move(m_asgi_connect_msg));
 }
 
 
@@ -55,9 +54,8 @@ std::unique_ptr<RequestHandlerStep> AcceptWebSocketStep::GetNextStep()
 StepResult SendConnectToApplicationStep::Enter()
 {
     auto task = concurrency::create_task([this]() {
-        AsgiHttpRequestMsg msg;
         msgpack::sbuffer buffer;
-        msgpack::pack(buffer, msg);
+        msgpack::pack(buffer, *m_asgi_connect_msg);
         m_channels.Send("websocket.connect", buffer);
     }).then([this]() {
         logger.debug() << "SendConnectToApplicationStep calling PostCompletion()";

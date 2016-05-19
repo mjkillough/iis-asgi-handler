@@ -15,6 +15,8 @@ from websocket import create_connection
 
 def test_ws_basic(site, asgi):
     ws = create_connection(site.ws_url, timeout=5)
+    channel, data = asgi.channels.receive_many(['websocket.connect'], block=True)
+    print(channel, data)
     ws.send("Hello, world");
     channel, data = asgi.channels.receive_many(['websocket.receive'], block=True)
     print(channel, data)
