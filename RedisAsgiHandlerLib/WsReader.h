@@ -15,7 +15,7 @@ class WsReader
 public:
     WsReader(WsRequestHandler& handler);
 
-    void Start();
+    void Start(const std::string& reply_channel, const std::string& request_path);
 
 private:
     void ReadAsync();

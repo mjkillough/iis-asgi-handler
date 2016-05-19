@@ -50,5 +50,5 @@ REQUEST_NOTIFICATION_STATUS WsRequestHandler::OnAsyncCompletion(IHttpCompletionI
 
 void WsRequestHandler::StartReadWritePipelines()
 {
-    m_reader.Start();
+    m_reader.Start(m_reply_channel, m_request_path);
 }

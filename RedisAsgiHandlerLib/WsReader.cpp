@@ -10,20 +10,26 @@
 #include "WsReader.h"
 #include "WsRequestHandler.h"
 
+
 WsReader::WsReader(WsRequestHandler & handler)
     : logger(handler.logger), m_channels(handler.m_channels),
       m_http_context(handler.m_http_context)
 { }
 
-void WsReader::Start()
+
+void WsReader::Start(const std::string& reply_channel, const std::string& request_path)
 {
     auto http_context3 = static_cast<IHttpContext3*>(m_http_context);
     m_ws_context = static_cast<IWebSocketContext*>(
         http_context3->GetNamedContextContainer()->GetNamedContext(L"websockets")
-        );
+    );
+
+    m_msg.reply_channel = reply_channel;
+    m_msg.path = request_path;
 
     ReadAsync();
 }
+
 
 void WsReader::ReadAsync()
 {
@@ -53,6 +59,7 @@ void WsReader::ReadAsync()
     logger.debug() << "ReadAsync() returning";
 }
 
+
 void WsReader::ReadAsyncComplete(HRESULT hr, DWORD num_bytes, BOOL utf8, BOOL final_fragment, BOOL close)
 {
     logger.debug() << "ReadAsyncComplete() " << num_bytes << "  " << utf8 << " " << final_fragment << " " << close;
@@ -78,6 +85,7 @@ void WsReader::ReadAsyncComplete(HRESULT hr, DWORD num_bytes, BOOL utf8, BOOL fi
     }
 }
 
+
 void WsReader::SendToApplicationAsync()
 {
     // Send synchronously for now.
@@ -89,6 +97,7 @@ void WsReader::SendToApplicationAsync()
     m_msg.data.resize(AsgiWsReceiveMsg::BUFFER_CHUNK_SIZE);
     m_msg.order += 1;
 }
+
 
 void WINAPI WsReader::ReadCallback(HRESULT hr, VOID* context, DWORD num_bytes, BOOL utf8, BOOL final_fragment, BOOL close)
 {
