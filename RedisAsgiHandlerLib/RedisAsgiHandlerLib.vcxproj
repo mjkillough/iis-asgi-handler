@@ -165,10 +165,14 @@
     <ClCompile Include="RedisChannelLayer.cpp" />
     <ClCompile Include="HttpRequestHandler.cpp" />
     <ClCompile Include="ResponsePump.cpp" />
+    <ClCompile Include="WsReader.cpp" />
     <ClCompile Include="WsRequestHandler.cpp" />
+    <ClCompile Include="WsRequestHandlerSteps.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AsgiHttpResponseMsg.h" />
+    <ClInclude Include="AsgiMsg.h" />
+    <ClInclude Include="AsgiWsReceiveMsg.h" />
     <ClInclude Include="HttpModule.h" />
     <ClInclude Include="HttpModuleFactory.h" />
     <ClInclude Include="AsgiHttpRequestMsg.h" />
@@ -178,7 +182,9 @@
     <ClInclude Include="HttpRequestHandler.h" />
     <ClInclude Include="RequestHandler.h" />
     <ClInclude Include="ResponsePump.h" />
+    <ClInclude Include="WsReader.h" />
     <ClInclude Include="WsRequestHandler.h" />
+    <ClInclude Include="WsRequestHandlerSteps.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\deps\hiredis-ae-iocp\hiredis-ae-iocp.vcxproj">
