@@ -95,6 +95,7 @@ void WsReader::SendToApplicationAsync()
 
     // Reset for the next msg.
     m_msg.data.resize(AsgiWsReceiveMsg::BUFFER_CHUNK_SIZE);
+    m_msg.data_size = 0;
     m_msg.order += 1;
 }
 

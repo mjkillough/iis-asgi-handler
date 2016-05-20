@@ -7,6 +7,7 @@ import os
 import sys
 import time
 import urllib
+import collections
 
 import pytest
 
@@ -17,10 +18,10 @@ def test_asgi_ws_order_0(site, asgi):
     # websocket.connect['order'] should always be 0
     ws1 = create_connection(site.ws_url, timeout=2)
     asgi_connect1 = asgi.receive_ws_connect()
-    assert ws1['order'] == 0
+    assert asgi_connect1['order'] == 0
     ws2 = create_connection(site.ws_url, timeout=2)
     asgi_connect2 = asgi.receive_ws_connect()
-    assert ws2['order'] == 0
+    assert asgi_connect2['order'] == 0
 
 
 def test_asgi_ws_connect_scheme_ws(site, asgi):
@@ -30,7 +31,7 @@ def test_asgi_ws_connect_scheme_ws(site, asgi):
 
 
 @pytest.mark.skip(reason='Need to provide TLS certificate when setting up IIS site.')
-def test_asgi_ws_connect_scheme_wss(site, asgi, session):
+def test_asgi_ws_connect_scheme_wss(site, asgi):
     ws = create_connection(site.ws_url, timeout=2)
     asgi_connect = asgi.receive_ws_connect()
     assert asgi_connect['scheme'] == 'wss'
@@ -57,7 +58,7 @@ def test_asgi_ws_connect_path(path, site, asgi):
     [('a', 'b'), ('c', 'd')],
     [('a', 'b c')],
 ])
-def test_asgi_ws_connect_querystring(qs_parts, site, asgi, session):
+def test_asgi_ws_connect_querystring(qs_parts, site, asgi):
     qs = ''
     if qs_parts is not None:
         qs = '?' + urllib.urlencode(qs_parts)
@@ -72,7 +73,7 @@ def test_asgi_ws_connect_querystring(qs_parts, site, asgi, session):
     {'User-Agent': 'Custom User-Agent'}, # 'Known' header
     {'X-Custom-Header': 'Value'},
 ])
-def test_asgi_ws_connect_headers(headers, site, asgi, session):
+def test_asgi_ws_connect_headers(headers, site, asgi):
     ws = create_connection(site.ws_url, header=headers, timeout=2)
     asgi_connect = asgi.receive_ws_connect()
     for name, value in headers.items():
@@ -80,19 +81,63 @@ def test_asgi_ws_connect_headers(headers, site, asgi, session):
         assert encoded_header in asgi_connect['headers']
 
 
-def test_ws_basic(site, asgi):
-    ws = create_connection(site.ws_url, timeout=5)
-    channel, data = asgi.channels.receive_many(['websocket.connect'], block=True)
-    print(channel, data)
-    ws.send("Hello, world");
-    channel, data = asgi.channels.receive_many(['websocket.receive'], block=True)
-    print(channel, data)
-    assert False
+def test_asgi_ws_receive(site, asgi):
+    ws = create_connection(site.ws_url, timeout=2)
+    ws.send(b'Hello, world!')
+    asgi_receive = asgi.receive_ws_data()
+    assert asgi_receive['bytes'] == b'Hello, world!'
 
+
+def test_asgi_ws_receive_has_correct_channel(site, asgi):
+    ws = create_connection(site.ws_url, timeout=2)
+    asgi_connect = asgi.receive_ws_connect()
+    ws.send('some data')
+    asgi_receive = asgi.receive_ws_data()
+    assert asgi_connect['reply_channel'].startswith('websocket.send')
+    assert asgi_connect['reply_channel'] == asgi_receive['reply_channel']
+
+
+def test_asgi_ws_receive_has_correct_path(site, asgi):
+    path = '/a/path/'
+    ws = create_connection(site.ws_url + path, timeout=2)
+    asgi_connect = asgi.receive_ws_connect()
+    ws.send('some data')
+    asgi_receive = asgi.receive_ws_data()
+    assert asgi_connect['path'] == path
+    assert asgi_connect['path'] == asgi_receive['path']
+
+
+def test_asgi_ws_receive_multiple_times_same_connection(site, asgi):
+    ws = create_connection(site.ws_url, timeout=2)
+    # Check we can receive multiple frames from the websocket connection,
+    # and ensure we can still send more data after we've received some.
+    for _ in range(2):
+        for i in range(10):
+            ws.send(b'%i' % i)
+        for i in range(10):
+            asgi_receive = asgi.receive_ws_data()
+            assert asgi_receive['bytes'] == b'%i' % i
+
+
+def test_asgi_ws_concurrent_connection(site, asgi):
+    # TODO: Paramaterize this test and have it create more connections when
+    # run on Windows Server, where we can have >10 concurrent connections.
+    wses = [create_connection(site.ws_url, timeout=2) for _ in range(10)]
+    for i, ws in enumerate(wses):
+        for j in range(10):
+            ws.send(b'%i-%i' % (j, i))
+
+    asgi_msgs = collections.defaultdict(set)
+    for i in range(10 * len(wses)):
+        asgi_msg = asgi.receive_ws_data()
+        connection, msg_num = asgi_msg['bytes'].split(b'-')
+        asgi_msgs[connection].add(msg_num)
+
+    assert len(asgi_msgs) == 10
+    for asgi_msg_set in asgi_msgs.itervalues():
+        assert asgi_msg_set == set(b'%i' % i for i in range(10))
 
 # - Receive data of various sizes
-# - websocket.receive has same reply_channel as websocket.connect
-# - websocket.receive has same path as websocket.connect
 # - websocket.receive has bytes/text depending on utf8
 # - websocket.receive multiple times with same connection
 # - websocket.receive from multiple connections at once
