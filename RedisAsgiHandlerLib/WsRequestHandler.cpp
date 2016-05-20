@@ -17,9 +17,12 @@ REQUEST_NOTIFICATION_STATUS WsRequestHandler::OnExecuteRequestHandler()
     m_reply_channel = m_channels.NewChannel("websocket.send!");
     m_request_path = GetRequestPath(raw_request);
 
+    // The HTTP_COOKED_URL seems to contain the wrong scheme for web sockets.
+    auto scheme = GetRequestScheme(raw_request) == "https" ? "wss" : "ws";
+
     auto asgi_connect_msg = std::make_unique<AsgiWsConnectMsg>();
     asgi_connect_msg->reply_channel = m_reply_channel;
-    asgi_connect_msg->scheme = GetRequestScheme(raw_request);
+    asgi_connect_msg->scheme = scheme;
     asgi_connect_msg->path = m_request_path;
     asgi_connect_msg->query_string = GetRequestQueryString(raw_request);
     asgi_connect_msg->root_path = ""; // TODO: Same as SCRIPT_NAME in WSGI. What r that?

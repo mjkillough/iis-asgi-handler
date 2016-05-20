@@ -14,6 +14,7 @@ import asgi_redis
 import requests_futures.sessions
 
 from .etw import *
+from .asgi import asgi
 
 
 logger = logging.getLogger(__name__)
@@ -119,24 +120,6 @@ def site(tmpdir, install_iis_module):
         appcmd('delete', 'apppool', pool_name)
         appcmd('delete', 'site', site_name)
 
-
-@pytest.fixture
-def asgi():
-    # TODO: Use a custom prefix and configure IIS module to use it too.
-    class _ChannelsWrapper(object):
-        def __init__(self, channels):
-            self.channels = channels
-        def receive_request(self):
-            channel, asgi_request = self.channels.receive_many(['http.request'], block=True)
-            assert channel == 'http.request'
-            return asgi_request
-        def send(self, channel, msg):
-            self.channels.send(channel, msg)
-        def assert_empty(self):
-            channel, asgi_request = self.channels.receive_many(['http.request'], block=False)
-            assert channel == None
-            assert asgi_request == None
-    return _ChannelsWrapper(asgi_redis.RedisChannelLayer())
 
 
 class _ThreadPoolExecutor(concurrent.futures.ThreadPoolExecutor):
