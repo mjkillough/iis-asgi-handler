@@ -147,10 +147,9 @@ def test_asgi_ws_concurrent_connection(site, asgi):
     for asgi_msg_set in asgi_msgs.itervalues():
         assert asgi_msg_set == set(b'%i' % i for i in range(10))
 
+
 # - Receive data of various sizes
 # - websocket.receive has bytes/text depending on utf8
-# - websocket.receive multiple times with same connection
-# - websocket.receive from multiple connections at once
 
 
 if __name__ == '__main__':
