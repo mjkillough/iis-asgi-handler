@@ -119,6 +119,16 @@ def test_asgi_ws_receive_multiple_times_same_connection(site, asgi):
             assert asgi_receive['bytes'] == b'%i' % i
 
 
+def test_asgi_ws_receive_order_increases(site, asgi):
+    ws = create_connection(site.ws_url, timeout=2)
+    ws.send(b' ')
+    asgi_receive1 = asgi.receive_ws_data()
+    assert asgi_receive1['order'] == 1
+    ws.send(b' ')
+    asgi_receive1 = asgi.receive_ws_data()
+    assert asgi_receive1['order'] == 2
+
+
 def test_asgi_ws_concurrent_connection(site, asgi):
     # TODO: Paramaterize this test and have it create more connections when
     # run on Windows Server, where we can have >10 concurrent connections.
