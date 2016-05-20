@@ -23,11 +23,26 @@ def test_asgi_http_request_scheme_http(site, asgi, session):
     asgi_request = asgi.receive_request()
     assert asgi_request['scheme'] == 'http'
 
+
 @pytest.mark.skip(reason='Need to provide HTTPS certificate when setting up IIS site.')
 def test_asgi_http_request_scheme_https(site, asgi, session):
     session.get(site.https_url, verify=False)
     asgi_request = asgi.receive_request()
     assert asgi_request['scheme'] == 'https'
+
+
+@pytest.mark.parametrize('path', [
+    '',
+    '/onedir/',
+    '/missing-trailing',
+    '/multi/level/with/file.txt'
+])
+def test_asgi_http_request_path(path, site, asgi, session):
+    session.get(site.url + path)
+    asgi_request = asgi.receive_request()
+    # IIS normalizes an empty path to '/'
+    path = path if path else '/'
+    assert asgi_request['path'] == path
 
 
 @pytest.mark.parametrize('qs_parts', [
