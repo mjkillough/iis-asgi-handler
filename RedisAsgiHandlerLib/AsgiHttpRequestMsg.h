@@ -2,8 +2,10 @@
 
 #include <msgpack.hpp>
 
+#include "AsgiMsg.h"
 
-class AsgiHttpRequestMsg
+
+class AsgiHttpRequestMsg : private AsgiMsg
 {
 public:
     std::string reply_channel;
@@ -17,65 +19,40 @@ public:
     std::vector<char> body;
 
     // TODO: body_channel and chunking.
+
+    template <typename Packer>
+    void msgpack_pack(Packer& packer) const
+    {
+        packer.pack_map(8);
+
+        pack_string(packer, "reply_channel");
+        pack_string(packer, reply_channel);
+        pack_string(packer, "http_version");
+        pack_string(packer, http_version);
+        pack_string(packer, "method");
+        pack_string(packer, method);
+        pack_string(packer, "scheme");
+        pack_string(packer, scheme);
+
+        // The values of these entries must be byte strings.
+        pack_string(packer, "path");
+        pack_bytestring(packer, path);
+        pack_string(packer, "query_string");
+        pack_bytestring(packer, query_string);
+        // Django seems to expect a unicode string, not a byte string.
+        // pack_string(packer, "root_path");
+        // pack_bytestring(packer, root_path);
+
+        pack_string(packer, "headers");
+        packer.pack_array(headers.size());
+        for (auto header : headers) {
+            packer.pack_array(2);
+            pack_bytestring(packer, std::get<0>(header));
+            pack_bytestring(packer, std::get<1>(header));
+        }
+
+        pack_string(packer, "body");
+        packer.pack_bin(body.size());
+        packer.pack_bin_body(body.data(), body.size());
+    }
 };
-
-
-namespace msgpack {
-	MSGPACK_API_VERSION_NAMESPACE(MSGPACK_DEFAULT_API_NS) {
-		namespace adaptor {
-
-			template<>
-			struct pack<AsgiHttpRequestMsg> {
-				template<typename Stream>
-                void pack_str_as_str(msgpack::packer<Stream>& packer, const std::string& str) const {
-					packer.pack_str(str.length());
-					packer.pack_str_body(str.c_str(), str.length());
-				}
-
-				template<typename Stream>
-                void pack_str_as_bin(msgpack::packer<Stream>& packer, const std::string& str) const {
-					packer.pack_bin(str.length());
-					packer.pack_bin_body(str.c_str(), str.length());
-				}
-
-				template<typename Stream>
-				msgpack::packer<Stream>& operator()(msgpack::packer<Stream>& packer, AsgiHttpRequestMsg const& msg) const {
-					packer.pack_map(8);
-
-					pack_str_as_str(packer, "reply_channel");
-					pack_str_as_str(packer, msg.reply_channel);
-                    pack_str_as_str(packer, "http_version");
-                    pack_str_as_str(packer, msg.http_version);
-                    pack_str_as_str(packer, "method");
-                    pack_str_as_str(packer, msg.method);
-                    pack_str_as_str(packer, "scheme");
-                    pack_str_as_str(packer, msg.scheme);
-
-                    // The values of these entries must be byte strings.
-                    pack_str_as_str(packer, "path");
-                    pack_str_as_bin(packer, msg.path);
-                    pack_str_as_str(packer, "query_string");
-                    pack_str_as_bin(packer, msg.query_string);
-                    // Django seems to expect a unicode string, not a byte string.
-                    // pack_str_as_str(packer, "root_path");
-                    // pack_str_as_bin(packer, msg.root_path);
-
-                    pack_str_as_str(packer, "headers");
-                    packer.pack_array(msg.headers.size());
-                    for (auto header : msg.headers) {
-                        packer.pack_array(2);
-                        pack_str_as_bin(packer, std::get<0>(header));
-                        pack_str_as_bin(packer, std::get<1>(header));
-                    }
-                    
-                    pack_str_as_str(packer, "body");
-                    packer.pack_bin(msg.body.size());
-                    packer.pack_bin_body(msg.body.data(), msg.body.size());
-
-                    return packer;
-				}
-			};
-
-		}
-	}
-}

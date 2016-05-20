@@ -4,6 +4,9 @@
 
 
 // Base class for ASGI messages that provides some helper functions for packing.
+// We need to use these in custom packer functions (rather than relying on MSGPACK_MAP
+// and friends) because we need control over whether std::string/std::vector<char> are
+// written as binary or text, so that asgi_redis/channels decodes them correctly.
 class AsgiMsg
 {
 protected:
