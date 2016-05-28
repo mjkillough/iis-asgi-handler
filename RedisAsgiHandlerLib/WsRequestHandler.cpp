@@ -42,7 +42,7 @@ REQUEST_NOTIFICATION_STATUS WsRequestHandler::OnAsyncCompletion(IHttpCompletionI
     HRESULT hr = completion_info->GetCompletionStatus();
     DWORD bytes = completion_info->GetCompletionBytes();
 
-    StartReadWritePipelines();
+    StartReaderWriter();
 
     logger.debug() << typeid(*m_current_connect_step.get()).name() << "->OnAsyncCompletion() being called";
     auto result = m_current_connect_step->OnAsyncCompletion(hr, bytes);
@@ -51,7 +51,8 @@ REQUEST_NOTIFICATION_STATUS WsRequestHandler::OnAsyncCompletion(IHttpCompletionI
     return HandlerStateMachine(m_current_connect_step, result);
 }
 
-void WsRequestHandler::StartReadWritePipelines()
+void WsRequestHandler::StartReaderWriter()
 {
     m_reader.Start(m_reply_channel, m_request_path);
+    m_writer.Start(m_reply_channel);
 }

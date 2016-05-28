@@ -9,6 +9,8 @@
 
 #include "WsReader.h"
 #include "WsRequestHandler.h"
+#include "RedisChannelLayer.h"
+#include "Logger.h"
 
 
 WsReader::WsReader(WsRequestHandler & handler)
@@ -76,7 +78,7 @@ void WsReader::ReadAsyncComplete(HRESULT hr, DWORD num_bytes, BOOL utf8, BOOL fi
     if (final_fragment) {
         // Don't bother re-sizing the buffer to the correct size before sending.
         // The msgpack serializer will take care of it.
-        SendToApplicationAsync();
+        SendToApplication();
     } else {
         // If we're almost at the end of the buffer, increase the buffer size.
         if (m_msg.data_size >= (m_msg.data.size() - AsgiWsReceiveMsg::BUFFER_CHUNK_INCREASE_THRESHOLD)) {
@@ -86,7 +88,7 @@ void WsReader::ReadAsyncComplete(HRESULT hr, DWORD num_bytes, BOOL utf8, BOOL fi
 }
 
 
-void WsReader::SendToApplicationAsync()
+void WsReader::SendToApplication()
 {
     // Send synchronously for now.
     msgpack::sbuffer buffer;
@@ -102,7 +104,7 @@ void WsReader::SendToApplicationAsync()
 
 void WINAPI WsReader::ReadCallback(HRESULT hr, VOID* context, DWORD num_bytes, BOOL utf8, BOOL final_fragment, BOOL close)
 {
-    auto read_pump = static_cast<WsReader*>(context);
-    read_pump->ReadAsyncComplete(hr, num_bytes, utf8, final_fragment, close);
-    read_pump->ReadAsync();
+    auto reader = static_cast<WsReader*>(context);
+    reader->ReadAsyncComplete(hr, num_bytes, utf8, final_fragment, close);
+    reader->ReadAsync();
 }

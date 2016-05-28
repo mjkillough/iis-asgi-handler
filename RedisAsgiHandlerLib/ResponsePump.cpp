@@ -1,6 +1,9 @@
 #include <chrono>
 #include <mutex>
 
+#define WIN32_LEAN_AND_MEAN
+#include <ppltasks.h>
+
 #include "ResponsePump.h"
 #include "Logger.h"
 
@@ -73,11 +76,10 @@ void ResponsePump::ThreadMain()
                 if (it != m_callbacks.end()) {
                     const auto callback = it->second;
                     m_callbacks.erase(it);
-                    // We call the callback with the lock still taken, so it shouldn't
-                    // try to Add or Remove callbacks. (We have removed its callback, so
-                    // hopefully it shouldn't need to).
                     logger.debug() << "ResponsePump calling callback for channel: " << channel;
-                    callback(std::move(data));
+                    concurrency::create_task([data, callback]() {
+                        callback(std::move(data));
+                    });
                 } else {
                     logger.debug() << "ResponsePump dropping reply as no callback for channel: " << channel;
                 }

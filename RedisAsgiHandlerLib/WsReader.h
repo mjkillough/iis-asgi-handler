@@ -4,9 +4,8 @@
 #include <httpserv.h>
 
 #include "AsgiWsReceiveMsg.h"
-#include "Logger.h"
 #include "RedisChannelLayer.h"
-
+#include "Logger.h"
 
 class WsRequestHandler;
 
@@ -20,7 +19,7 @@ public:
 private:
     void ReadAsync();
     void ReadAsyncComplete(HRESULT hr, DWORD num_bytes, BOOL utf8, BOOL final_fragment, BOOL close);
-    void SendToApplicationAsync();
+    void SendToApplication();
 
     const Logger& logger;
     RedisChannelLayer& m_channels;

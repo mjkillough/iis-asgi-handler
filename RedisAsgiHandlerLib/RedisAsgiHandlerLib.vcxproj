@@ -168,12 +168,14 @@
     <ClCompile Include="WsReader.cpp" />
     <ClCompile Include="WsRequestHandler.cpp" />
     <ClCompile Include="WsRequestHandlerSteps.cpp" />
+    <ClCompile Include="WsWriter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AsgiHttpResponseMsg.h" />
     <ClInclude Include="AsgiMsg.h" />
     <ClInclude Include="AsgiWsConnectMsg.h" />
     <ClInclude Include="AsgiWsReceiveMsg.h" />
+    <ClInclude Include="AsgiWsSendMsg.h" />
     <ClInclude Include="HttpModule.h" />
     <ClInclude Include="HttpModuleFactory.h" />
     <ClInclude Include="AsgiHttpRequestMsg.h" />
@@ -186,6 +188,7 @@
     <ClInclude Include="WsReader.h" />
     <ClInclude Include="WsRequestHandler.h" />
     <ClInclude Include="WsRequestHandlerSteps.h" />
+    <ClInclude Include="WsWriter.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\deps\hiredis-ae-iocp\hiredis-ae-iocp.vcxproj">

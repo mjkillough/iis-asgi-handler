@@ -7,7 +7,6 @@ import os
 import sys
 import time
 import urllib
-import collections
 
 import pytest
 
@@ -128,31 +127,52 @@ def test_asgi_ws_receive_order_increases(site, asgi):
     asgi_receive1 = asgi.receive_ws_data()
     assert asgi_receive1['order'] == 2
 
+# TODO:
+# - Receive data of various sizes
+# - websocket.receive has bytes/text depending on utf8
 
-def test_asgi_ws_concurrent_connection(site, asgi):
+
+def test_asgi_ws_send(site, asgi):
+    ws = create_connection(site.ws_url, timeout=2)
+    asgi_connect = asgi.receive_ws_connect()
+    asgi.send(asgi_connect['reply_channel'], dict(bytes=b'Hello, world!', close=False))
+    data = ws.recv()
+    assert data == b'Hello, world!'
+
+
+def test_asgi_ws_send_multiple_times_same_connection(site, asgi):
+    ws = create_connection(site.ws_url, timeout=2)
+    asgi_connect = asgi.receive_ws_connect()
+    for i in range(10):
+        asgi.send(asgi_connect['reply_channel'], dict(bytes=b'%i' % i, close=False))
+    for i in range(10):
+        data = ws.recv()
+        assert data == b'%i' % i
+
+
+def test_asgi_ws_concurrent_connections(site, asgi):
     # TODO: Paramaterize this test and have it create more connections when
     # run on Windows Server, where we can have >10 concurrent connections.
     wses = [create_connection(site.ws_url, timeout=2) for _ in range(10)]
     for i, ws in enumerate(wses):
         for j in range(10):
-            ws.send(b'%i-%i' % (j, i))
+            ws.send(b'%i-%i' % (i, j))
 
-    asgi_msgs = collections.defaultdict(set)
-    for i in range(10 * len(wses)):
+    # Echo each message back.
+    for i in range(100):
         asgi_msg = asgi.receive_ws_data()
-        connection, msg_num = asgi_msg['bytes'].split(b'-')
-        asgi_msgs[connection].add(msg_num)
+        asgi.send(asgi_msg['reply_channel'], dict(bytes=asgi_msg['bytes']))
 
-    assert len(asgi_msgs) == 10
-    for asgi_msg_set in asgi_msgs.itervalues():
-        assert asgi_msg_set == set(b'%i' % i for i in range(10))
-
-
-# - Receive data of various sizes
-# - websocket.receive has bytes/text depending on utf8
+    # Ensure each ws got the complete set of replies. We can rely on the messages
+    # being in order, as we have just one worker (us) and the interface server
+    # handles messages on each WebSocket serially.
+    for i, ws in enumerate(wses):
+        for j in range(10):
+            data = ws.recv()
+            assert data == b'%i-%i' % (i, j)
 
 
 if __name__ == '__main__':
     # Should really sys.exit() this, but it causes Visual Studio
     # to eat the output. :(
-    pytest.main(['--ignore', 'env1/', '-x', 'test_ws.py'])
+    pytest.main(['--ignore', 'env1/', 'test_ws.py'])
