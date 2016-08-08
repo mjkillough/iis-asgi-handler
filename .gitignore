@@ -1,17 +1,2 @@
-*.vcxproj.user
-*.vcxproj.filters
-*.pyc
 
-.vs/
-x64/
-Debug/
-IntegrationTests/.cache/
-IntegrationTests/__pycache__/
-IntegrationTests/env1/
-RedisAsgiHandler.VC.db
-RedisAsgiHandler.sdf
-RedisAsgiHandler/x64/
-RedisAsgiHandlerLib/Debug/
-RedisAsgiHandlerLib/x64/
-cli/x64/
 
