@@ -1,0 +1,33 @@
+version: 0.1.0.{build}
+
+
+platform: x64
+
+
+build_script:
+- cmd: >-
+    mkdir build
+    cd build
+
+    mkdir x64
+    cd x64
+    cmake ../.. -G "Visual Studio 14 2015 Win64"
+    cmake --build . --config Release
+    cd ..
+
+    mkdir x86
+    cd x86
+    cmake ../.. -G "Visual Studio 14 2015"
+    cmake --build . --config Release
+
+
+# Only bother testing x64 for now - it's enough that x86 compiles.
+test_script:
+- cmd: build/x64/RedisAsgiHandlerTest/Release/RedisAsgiHandlerTest.exe
+
+
+artifacts:
+- path: build/x64/RedisAsgiHandlerTest/Release/RedisAsgiHandlerTest.exe
+- path: build/x64/RedisAsgiHandler/Release/RedisAsgiHandler.dll
+- path: build/x86/RedisAsgiHandlerTest/Release/RedisAsgiHandlerTest.exe
+- path: build/x86/RedisAsgiHandler/Release/RedisAsgiHandler.dll
