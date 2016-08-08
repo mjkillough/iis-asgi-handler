@@ -1,4 +1,4 @@
-# iis-asgi-handler
+# iis-asgi-handler — [![Build status](https://ci.appveyor.com/api/projects/status/yuaoo10qojr5825j/branch/master?svg=true)](https://ci.appveyor.com/project/mjkillough/iis-asgi-handler/branch/master)
 
 Module to allow IIS to act as an ASGI Interface Server for [Django Channels](https://github.com/andrewgodwin/channels/). Supports both HTTP and WebSockets.
 
