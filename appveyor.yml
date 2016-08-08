@@ -33,7 +33,7 @@ build_script:
 
 # Only test on x64 for now.
 test_script:
-- cmd: build/x64/RedisAsgiHandlerTest/Release/RedisAsgiHandlerTest.exe
+- cmd: ./build/x64/RedisAsgiHandlerTest/Release/RedisAsgiHandlerTest.exe
 
 
 artifacts:
