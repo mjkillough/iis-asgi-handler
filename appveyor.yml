@@ -29,6 +29,8 @@ build_script:
     cmake ../.. -G "Visual Studio 14 2015"
 
     cmake --build . --config Release
+    
+    cd ../..
 
 
 # Only test on x64 for now.
