@@ -20,7 +20,7 @@ build_script:
 # Only test on x64 for now.
 test_script:
 - cd build/x64
-- ctest -c Release
+- ctest -C Release
 
 
 artifacts:
