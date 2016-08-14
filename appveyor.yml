@@ -1,30 +1,25 @@
 version: 0.1.0.{build}
 
-platform: x64
+
+platform:
+- x64
+- Win32
+
+
+configuration:
+- Release
+
 
 build_script:
+- set GENERATOR=Visual Studio 14 2015
+- if %PLATFORM% == x64 set GENERATOR=%GENERATOR% Win64
 - mkdir build
 - cd build
-- mkdir x64
-- cd x64
-- cmake ../.. -G "Visual Studio 14 2015 Win64"
-- cmake --build . --config Release
+- cmake .. -G "%GENERATOR%"
+- cmake --build . --config %CONFIGURATION%
 - cd ..
-- mkdir x86
-- cd x86
-- cmake ../.. -G "Visual Studio 14 2015"
-- cmake --build . --config Release
-- cd ../..
 
 
-# Only test on x64 for now.
 test_script:
-- cd build/x64
-- ctest -C Release --output-on-failure
-
-
-artifacts:
-- path: build/x64/RedisAsgiHandlerTest/Release/RedisAsgiHandlerTest.exe
-- path: build/x64/RedisAsgiHandler/Release/RedisAsgiHandler.dll
-- path: build/x86/RedisAsgiHandlerTest/Release/RedisAsgiHandlerTest.exe
-- path: build/x86/RedisAsgiHandler/Release/RedisAsgiHandler.dll
+- cd build
+- ctest -C %CONFIGURATION% --output-on-failure
