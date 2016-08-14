@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 
 project(IisAsgiHandler)
 
-
+enable_testing()
 set_property(GLOBAL PROPERTY USE_FOLDERS On)
 
 

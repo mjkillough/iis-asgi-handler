@@ -37,3 +37,8 @@ target_link_libraries(RedisAsgiHandlerTest
 
 source_group(Mocks REGULAR_EXPRESSION "^mock_.*$")
 source_group(Tests REGULAR_EXPRESSION "^tests_.*$")
+
+
+add_test(NAME RedisAsgiHandlerTest
+    COMMAND $<TARGET_FILE:RedisAsgiHandlerTest>
+)
