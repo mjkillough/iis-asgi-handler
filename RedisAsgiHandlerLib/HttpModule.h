@@ -11,7 +11,10 @@
 class HttpModule : public CHttpModule
 {
 public:
-    HttpModule(const HttpModuleFactory& factory, ResponsePump& response_pump, const Logger& logger);
+    HttpModule(
+        const HttpModuleFactory& factory, ResponsePump& response_pump,
+        const Logger& logger
+    );
     ~HttpModule();
 
     virtual REQUEST_NOTIFICATION_STATUS OnExecuteRequestHandler(
