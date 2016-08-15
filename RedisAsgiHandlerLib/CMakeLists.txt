@@ -66,6 +66,8 @@ target_include_directories(RedisAsgiHandlerLib PUBLIC
 )
 
 
-source_group(Http REGULAR_EXPRESSION "^Http.*")
-source_group(Ws   REGULAR_EXPRESSION "^Ws.*")
-source_group(Asgi REGULAR_EXPRESSION "^Asgi.*")
+source_group("Source Files\\Http" REGULAR_EXPRESSION /Http[^/]*.cpp$)
+source_group("Header Files\\Http" REGULAR_EXPRESSION /Http[^/]*.h$)
+source_group("Source Files\\Ws"   REGULAR_EXPRESSION /Ws[^/]*.cpp$)
+source_group("Header Files\\Ws"   REGULAR_EXPRESSION /Ws[^/]*.h$)
+source_group("Header Files\\Asgi" REGULAR_EXPRESSION /Asgi[^/]*$)

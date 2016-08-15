@@ -35,8 +35,9 @@ target_link_libraries(RedisAsgiHandlerTest
 )
 
 
-source_group(Mocks REGULAR_EXPRESSION "^mock_.*$")
-source_group(Tests REGULAR_EXPRESSION "^tests_.*$")
+source_group("Header Files\\Mocks" REGULAR_EXPRESSION /mock_[^/]*.h$)
+source_group("Source Files\\Tests" REGULAR_EXPRESSION /test_[^/]*.cpp$)
+source_group("Source Files\\Tests\\Steps" REGULAR_EXPRESSION /test_[^/]*Step.cpp$)
 
 
 add_test(NAME RedisAsgiHandlerTest
