@@ -18,7 +18,7 @@ set(FIXTURES
 
 
 add_custom_target(IntegrationTests
-    SOURCES ${TESTS} ${FIXTURES}
+    SOURCES ${TESTS} ${FIXTURES} requirements.txt
 )
 
 source_group(fixtures REGULAR_EXPRESSION fixtures/.*)
