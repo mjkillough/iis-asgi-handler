@@ -4,8 +4,8 @@
 set(TESTS
     test.py
     test_config.py
-    test_http.py
-    test_ws.py
+    test_asgi_http.py
+    test_asgi_ws.py
     test_django_http.py
 )
 
