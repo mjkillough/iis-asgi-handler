@@ -6,6 +6,7 @@ set(TESTS
     test_config.py
     test_http.py
     test_ws.py
+    test_django_http.py
 )
 
 set(FIXTURES
@@ -14,6 +15,7 @@ set(FIXTURES
     fixtures/__init__.py
     fixtures/asgi.py
     fixtures/etw.py
+    fixtures/django_worker.py
 )
 
 

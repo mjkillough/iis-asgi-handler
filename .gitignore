@@ -2,5 +2,6 @@
 */__pycache__/
 
 /IntegrationTests/venv/
+/IntegrationTests/.cache/
 
 /build/

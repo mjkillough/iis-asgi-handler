@@ -13,8 +13,9 @@ import pytest
 import asgi_redis
 import requests_futures.sessions
 
-from .etw import *
 from .asgi import asgi
+from .django_worker import django_worker
+from .etw import *
 
 
 logger = logging.getLogger(__name__)
