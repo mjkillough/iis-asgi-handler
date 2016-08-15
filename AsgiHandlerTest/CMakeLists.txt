@@ -1,4 +1,4 @@
-# RedisAsgiHandlerTest.exe - Unit tests for RedisAsgiHandler.{dll,lib}
+# AsgiHandlerTest.exe - Unit tests for AsgiHandlerLib.lib
 
 
 set(SOURCES
@@ -23,13 +23,13 @@ set(HEADERS
 )
 
 
-add_executable(RedisAsgiHandlerTest
+add_executable(AsgiHandlerTest
     ${SOURCES}
     ${HEADERS}
 )
 
-target_link_libraries(RedisAsgiHandlerTest
-    RedisAsgiHandlerLib
+target_link_libraries(AsgiHandlerTest
+    AsgiHandlerLib
     googletest
     googlemock
 )
@@ -40,6 +40,6 @@ source_group("Source Files\\Tests" REGULAR_EXPRESSION /test_[^/]*.cpp$)
 source_group("Source Files\\Tests\\Steps" REGULAR_EXPRESSION /test_[^/]*Step.cpp$)
 
 
-add_test(NAME RedisAsgiHandlerTest
-    COMMAND $<TARGET_FILE:RedisAsgiHandlerTest>
+add_test(NAME AsgiHandlerTest
+    COMMAND $<TARGET_FILE:AsgiHandlerTest>
 )

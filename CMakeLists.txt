@@ -20,8 +20,8 @@ endif()
 
 add_subdirectory(dependencies)
 add_subdirectory(cli)
-add_subdirectory(RedisAsgiHandlerLib)
-add_subdirectory(RedisAsgiHandlerTest)
-add_subdirectory(RedisAsgiHandler)
+add_subdirectory(AsgiHandlerLib)
+add_subdirectory(AsgiHandlerTest)
+add_subdirectory(AsgiHandler)
 add_subdirectory(IntegrationTests)
 

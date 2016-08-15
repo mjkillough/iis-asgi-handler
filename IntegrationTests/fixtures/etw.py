@@ -58,7 +58,7 @@ class ConsumerThread(threading.Thread):
 
 @pytest.yield_fixture
 def etw_consumer(request):
-    session_name = 'RedisAsgiHandlerSession-' + os.urandom(4).encode('hex')
+    session_name = 'AsgiHandlerSession-' + os.urandom(4).encode('hex')
     try:
         # We use REAL_TIME and do not specify a LogFile.
         props = etw.TraceProperties()

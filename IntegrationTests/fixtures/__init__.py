@@ -20,16 +20,16 @@ from .asgi import asgi
 logger = logging.getLogger(__name__)
 
 
-MODULE_NAME = 'RedisAsgiHandler'
+MODULE_NAME = 'AsgiHandler'
 DEFAULT_DLL_PATH = os.path.join(
-    os.path.dirname(__file__), '..', '..', 'build', 'RedisAsgiHandler', 'Debug', 'RedisAsgiHandler.dll'
+    os.path.dirname(__file__), '..', '..', 'build', 'AsgiHandler', 'Debug', 'AsgiHandler.dll'
 )
 
 
 def pytest_addoption(parser):
     parser.addoption(
         '--asgi-handler-dll', action='store', default=DEFAULT_DLL_PATH,
-        help='Path to the RedisAsgiHandler.dll that is to be tested'
+        help='Path to the AsgiHandler.dll that is to be tested'
     )
 @pytest.fixture
 def asgi_handler_dll(request):
@@ -97,10 +97,10 @@ def site(tmpdir, install_iis_module):
                             resourceType="File"
                         />
                         <add
-                            name="RedisAsgiHandler"
+                            name="AsgiHandler"
                             path="*"
                             verb="*"
-                            modules="RedisAsgiHandler"
+                            modules="AsgiHandler"
                         />
                     </handlers>
                 </system.webServer>

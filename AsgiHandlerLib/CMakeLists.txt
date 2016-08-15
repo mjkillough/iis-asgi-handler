@@ -1,4 +1,4 @@
-# RedisAsgiHandler.lib - For use in RedisAsgiHandler.dll, but compiled as a lib so that it can also be used by tests.
+# AsgiHandlerLib.lib - For use in AsgiHandler.dll, but compiled as a lib so that it can also be used by tests.
 
 
 set(SOURCES
@@ -49,18 +49,18 @@ set(HEADERS
 )
 
 
-add_library(RedisAsgiHandlerLib STATIC
+add_library(AsgiHandlerLib STATIC
     ${SOURCES}
     ${HEADERS}
 )
 
-target_link_libraries(RedisAsgiHandlerLib
+target_link_libraries(AsgiHandlerLib
     hiredis
     hiredis-interop
     msgpack-c
 )
 
-target_include_directories(RedisAsgiHandlerLib PUBLIC
+target_include_directories(AsgiHandlerLib PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:.>
 )
