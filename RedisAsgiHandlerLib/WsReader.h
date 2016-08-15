@@ -8,7 +8,7 @@
 
 
 class WsRequestHandler;
-class IChannelLayer;
+class ChannelLayer;
 
 
 class WsReader
@@ -24,7 +24,7 @@ private:
     void SendToApplication();
 
     const Logger& logger;
-    IChannelLayer& m_channels;
+    ChannelLayer& m_channels;
     IHttpContext* m_http_context;
     IWebSocketContext* m_ws_context;
     AsgiWsReceiveMsg m_msg;

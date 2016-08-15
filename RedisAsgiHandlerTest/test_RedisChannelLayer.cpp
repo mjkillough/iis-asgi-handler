@@ -1,12 +1,15 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 
-#include "RedisChannelLayer.h"
+#include "mock_ChannelLayer.h"
 
 
-TEST(RedisChannelLayerTest, NewChannelGivesUniqueName)
+// We use MockChannelLayer, which mocks the abstract methods. It leaves the
+// NewChannel() function untouched, which is what we're testing here.
+
+TEST(ChannelLayerTest, NewChannelGivesUniqueName)
 {
-    RedisChannelLayer channels1, channels2;
+    MockChannelLayer channels1, channels2;
 
     // Different instances give unique names.
     EXPECT_NE(channels1.NewChannel("prefix"), channels2.NewChannel("prefix"));
@@ -16,9 +19,9 @@ TEST(RedisChannelLayerTest, NewChannelGivesUniqueName)
 }
 
 
-TEST(RedisChannelLayerTest, NewChannelRespectsPrefix)
+TEST(ChannelLayerTest, NewChannelRespectsPrefix)
 {
-    RedisChannelLayer channels;
+    MockChannelLayer channels;
 
     auto prefix = std::string{"myprefix"};
     auto channel_name = channels.NewChannel(prefix);

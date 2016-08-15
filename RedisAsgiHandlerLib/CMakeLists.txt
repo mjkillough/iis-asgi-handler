@@ -25,7 +25,7 @@ set(HEADERS
     HttpModuleFactory.h
 
     Logger.h
-    IChannelLayer.h
+    ChannelLayer.h
     ResponsePump.h
 
     ScopedRedisReply.h

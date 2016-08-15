@@ -3,7 +3,7 @@
 
 #include "HttpRequestHandler.h"
 #include "HttpRequestHandlerSteps.h"
-#include "IChannelLayer.h"
+#include "ChannelLayer.h"
 #include "Logger.h"
 
 

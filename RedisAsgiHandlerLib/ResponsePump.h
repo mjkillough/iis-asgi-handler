@@ -7,13 +7,13 @@
 #include "Logger.h"
 
 
-class IChannelLayer;
+class ChannelLayer;
 
 
 class ResponsePump
 {
 public:
-    ResponsePump(const Logger& logger, IChannelLayer& channels);
+    ResponsePump(const Logger& logger, ChannelLayer& channels);
     ~ResponsePump();
 
     void Start();
@@ -29,7 +29,7 @@ private:
 
 
     const Logger& logger;
-    IChannelLayer& m_channels;
+    ChannelLayer& m_channels;
     std::thread m_thread;
     bool m_thread_stop;
     std::unordered_map<std::string, ResponseChannelCallback> m_callbacks;

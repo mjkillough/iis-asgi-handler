@@ -5,11 +5,11 @@
 #include <ppltasks.h>
 
 #include "ResponsePump.h"
-#include "IChannelLayer.h"
+#include "ChannelLayer.h"
 #include "Logger.h"
 
 
-ResponsePump::ResponsePump(const Logger& logger, IChannelLayer& channels)
+ResponsePump::ResponsePump(const Logger& logger, ChannelLayer& channels)
     : logger(logger), m_channels(channels), m_thread_stop(false)
 {
 }

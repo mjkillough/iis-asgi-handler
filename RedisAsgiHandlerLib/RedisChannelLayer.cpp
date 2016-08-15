@@ -1,5 +1,4 @@
 #include <iostream>
-#include <algorithm>
 
 #define WIN32_LEAN_AND_MEAN
 #include <WinSock2.h>
@@ -12,7 +11,7 @@
 
 
 RedisChannelLayer::RedisChannelLayer(std::string ip, int port, std::string prefix)
-    : m_redis_ctx(nullptr), m_prefix(prefix), m_expiry(60), m_random_engine(std::random_device{}())
+    : m_redis_ctx(nullptr), m_prefix(prefix), m_expiry(60)
 {
     struct timeval timeout = { 1, 500000 }; // 1.5 seconds
     m_redis_ctx = redisConnectWithTimeout(ip.c_str(), port, timeout);
@@ -32,11 +31,6 @@ RedisChannelLayer::RedisChannelLayer(std::string ip, int port, std::string prefi
 RedisChannelLayer::~RedisChannelLayer()
 {
     redisFree(m_redis_ctx);
-}
-
-std::string RedisChannelLayer::NewChannel(std::string prefix)
-{
-    return prefix + GenerateRandomAscii(10);
 }
 
 void RedisChannelLayer::Send(const std::string& channel, const msgpack::sbuffer& buffer)
@@ -101,13 +95,4 @@ std::tuple<std::string, std::string> RedisChannelLayer::ReceiveMany(const std::v
     // TODO: Think of a way to avoid extra copies. Perhaps a msgpack::object
     //       with pointers into the original redisReply.
     return std::make_tuple(channel, std::string(reply->str, reply->len));
-}
-
-std::string RedisChannelLayer::GenerateRandomAscii(size_t length)
-{
-    static const char charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    static const size_t max_index = strlen(charset) - 1;
-    std::string random_string(length, '0');
-    std::generate_n(random_string.begin(), length, [this]() { return charset[m_random_engine() % max_index]; });
-    return random_string;
 }

@@ -9,7 +9,7 @@
 #include "WsWriter.h"
 
 
-class IChannelLayer;
+class ChannelLayer;
 
 
 class WsRequestHandler : public RequestHandler
@@ -25,7 +25,7 @@ class WsRequestHandler : public RequestHandler
 
 public:
     WsRequestHandler(
-        ResponsePump& response_pump, IChannelLayer& channels, const Logger& logger, IHttpContext* http_context
+        ResponsePump& response_pump, ChannelLayer& channels, const Logger& logger, IHttpContext* http_context
     )
         : RequestHandler(response_pump, channels, logger, http_context), m_reader(*this), m_writer(*this)
     { }
