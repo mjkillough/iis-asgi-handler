@@ -18,10 +18,10 @@ more_content: Boolean value signifying if there is additional content to come (a
 class AsgiHttpResponseMsg
 {
 public:
-    int status;
+    int status{0};
     std::vector<std::tuple<std::string, std::string>> headers;
     std::string content;
-    bool more_content;
+    bool more_content{false};
 
     MSGPACK_DEFINE_MAP(status, headers, content, more_content);
 };

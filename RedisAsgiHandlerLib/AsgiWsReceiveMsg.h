@@ -22,7 +22,7 @@ public:
     // of time. `data_size` contains the true size of the message.
     std::vector<char> data;
     size_t data_size{0};
-    bool utf8;
+    bool utf8{true};
 
     // The initial size of the buffer and the size that it will be incremented
     // by each time the current message gets within  BUFFER_CHUNK_INCREASE_THRESHOLD.
