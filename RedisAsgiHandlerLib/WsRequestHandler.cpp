@@ -4,6 +4,7 @@
 #include "WsRequestHandler.h"
 #include "WsRequestHandlerSteps.h"
 
+#include "IChannelLayer.h"
 #include "Logger.h"
 
 

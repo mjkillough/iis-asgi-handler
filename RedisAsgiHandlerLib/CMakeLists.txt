@@ -24,15 +24,16 @@ set(HEADERS
     HttpModule.h
     HttpModuleFactory.h
 
-    ScopedRedisReply.h
     Logger.h
-    RedisChannelLayer.h
+    IChannelLayer.h
     ResponsePump.h
+
+    ScopedRedisReply.h
+    RedisChannelLayer.h
 
     RequestHandler.h
     HttpRequestHandler.h
     HttpRequestHandlerSteps.h
-
 
     WsRequestHandler.h
     WsRequestHandlerSteps.h

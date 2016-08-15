@@ -7,7 +7,7 @@
 
 
 HttpModuleFactory::HttpModuleFactory(const HTTP_MODULE_ID& module_id)
-    : m_module_id(module_id), m_response_pump(logger)
+    : m_module_id(module_id), m_response_pump(logger, m_channels)
 {
     logger.debug() << "Creating HttpModuleFactory";
     m_response_pump.Start();

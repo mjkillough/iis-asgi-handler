@@ -3,7 +3,7 @@
 #include "gmock/gmock.h"
 
 #include "mock_Logger.h"
-#include "mock_RedisChannelLayer.h"
+#include "mock_ChannelLayer.h"
 #include "HttpRequestHandler.h"
 
 
@@ -17,6 +17,6 @@ public:
         : HttpRequestHandler(response_pump, channels, logger, http_context)
     { }
 
-    MockRedisChannelLayer channels;
+    MockChannelLayer channels;
     NiceMock<MockLogger> logger;
 };

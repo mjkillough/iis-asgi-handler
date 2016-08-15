@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "ResponsePump.h"
-#include "RedisChannelLayer.h"
 #include "Logger.h"
 
 
@@ -38,7 +37,7 @@ protected:
     const Logger& logger;
     IHttpContext* m_http_context;
     ResponsePump& m_response_pump;
-    RedisChannelLayer& m_channels;
+    IChannelLayer& m_channels;
 };
 
 
@@ -47,7 +46,7 @@ class RequestHandler : public IHttpStoredContext
     friend class RequestHandlerStep;
 public:
     RequestHandler::RequestHandler(
-        ResponsePump& response_pump, RedisChannelLayer& channels, const Logger& logger, IHttpContext* http_context
+        ResponsePump& response_pump, IChannelLayer& channels, const Logger& logger, IHttpContext* http_context
     )
         : m_response_pump(response_pump), m_channels(channels), logger(logger), m_http_context(http_context)
     { }
@@ -63,7 +62,7 @@ protected:
     IHttpContext* m_http_context;
     ResponsePump& m_response_pump;
     const Logger& logger;
-    RedisChannelLayer& m_channels;
+    IChannelLayer& m_channels;
 
     static std::string GetRequestHttpVersion(const IHttpRequest* request);
     static std::string GetRequestScheme(const HTTP_REQUEST* raw_request);

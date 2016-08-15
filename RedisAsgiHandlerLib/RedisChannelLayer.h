@@ -10,11 +10,13 @@
 #include <msgpack.hpp>
 #include <hiredis.h>
 
+#include "IChannelLayer.h"
+
 
 typedef std::unique_ptr<redisReply, std::function<void(void*)>> RedisReply;
 
 
-class RedisChannelLayer
+class RedisChannelLayer : public IChannelLayer
 {
 public:
     RedisChannelLayer(std::string ip = "127.0.0.1", int port = 6379, std::string prefix = "asgi:");

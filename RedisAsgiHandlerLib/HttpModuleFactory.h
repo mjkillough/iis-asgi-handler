@@ -6,8 +6,9 @@
 #define WIN32_LEAN_AND_MEAN
 #include <httpserv.h>
 
-#include "ResponsePump.h"
 #include "Logger.h"
+#include "RedisChannelLayer.h"
+#include "ResponsePump.h"
 
 
 class HttpModuleFactory : public IHttpModuleFactory
@@ -26,5 +27,6 @@ public:
 private:
     HTTP_MODULE_ID m_module_id;
     Logger logger; // must be declared before other members that rely on it.
+    RedisChannelLayer m_channels;
     ResponsePump m_response_pump;
 };

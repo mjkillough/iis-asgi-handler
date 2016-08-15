@@ -4,13 +4,16 @@
 #include <mutex>
 #include <unordered_map>
 
-#include "RedisChannelLayer.h"
 #include "Logger.h"
+
+
+class IChannelLayer;
+
 
 class ResponsePump
 {
 public:
-    ResponsePump(const Logger& logger);
+    ResponsePump(const Logger& logger, IChannelLayer& channels);
     ~ResponsePump();
 
     void Start();
@@ -24,11 +27,9 @@ public:
 private:
     void ThreadMain();
 
-    // This should probably be constructed by someone else and given to us.
-    // (This will allow someone to configure it to speak to the right redis, etc.)
-    RedisChannelLayer m_channels;
 
     const Logger& logger;
+    IChannelLayer& m_channels;
     std::thread m_thread;
     bool m_thread_stop;
     std::unordered_map<std::string, ResponseChannelCallback> m_callbacks;

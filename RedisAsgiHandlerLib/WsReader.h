@@ -4,10 +4,12 @@
 #include <httpserv.h>
 
 #include "AsgiWsReceiveMsg.h"
-#include "RedisChannelLayer.h"
 #include "Logger.h"
 
+
 class WsRequestHandler;
+class IChannelLayer;
+
 
 class WsReader
 {
@@ -22,7 +24,7 @@ private:
     void SendToApplication();
 
     const Logger& logger;
-    RedisChannelLayer& m_channels;
+    IChannelLayer& m_channels;
     IHttpContext* m_http_context;
     IWebSocketContext* m_ws_context;
     AsgiWsReceiveMsg m_msg;

@@ -18,7 +18,7 @@ set(HEADERS
     mock_httpserv.h
     mock_ResponsePump.h
     mock_HttpRequestHandler.h
-    mock_RedisChannelLayer.h
+    mock_ChannelLayer.h
     mock_Logger.h
 )
 

@@ -8,6 +8,7 @@
 
 #include "WsRequestHandlerSteps.h"
 #include "RequestHandler.h"
+#include "IChannelLayer.h"
 
 
 // Connection Pipeline - AcceptWebSocketStep
