@@ -10,5 +10,6 @@ six==1.10.0
 requests-futures==0.9.7
 futures==3.0.5
 pypiwin32==219
+websocket-client==0.37.0
 
 -e git+https://github.com/sebmarchand/pyetw.git@302431b0eecc7698f1b7641ed8cf39f8769beb4b#egg=ETW

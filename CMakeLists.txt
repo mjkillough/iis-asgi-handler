@@ -23,3 +23,5 @@ add_subdirectory(cli)
 add_subdirectory(RedisAsgiHandlerLib)
 add_subdirectory(RedisAsgiHandlerTest)
 add_subdirectory(RedisAsgiHandler)
+add_subdirectory(IntegrationTests)
+

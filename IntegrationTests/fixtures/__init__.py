@@ -19,8 +19,21 @@ from .asgi import asgi
 
 logger = logging.getLogger(__name__)
 
+
 MODULE_NAME = 'RedisAsgiHandler'
-DLL_PATH = os.path.join('C:\\', 'dev', 'RedisAsgiHandler', 'x64', 'Debug', 'RedisAsgiHandler.dll')
+DEFAULT_DLL_PATH = os.path.join(
+    os.path.dirname(__file__), '..', '..', 'build', 'RedisAsgiHandler', 'Debug', 'RedisAsgiHandler.dll'
+)
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        '--asgi-handler-dll', action='store', default=DEFAULT_DLL_PATH,
+        help='Path to the RedisAsgiHandler.dll that is to be tested'
+    )
+@pytest.fixture
+def asgi_handler_dll(request):
+    return request.config.getoption('--asgi-handler-dll')
 
 
 # Taken from pytest docs - makes report available in fixture.
@@ -44,14 +57,14 @@ def appcmd(*args):
 def uninstall_module():
     appcmd('uninstall', 'module', MODULE_NAME)
 
-def install_module():
-    appcmd('install', 'module', '/name:%s' % MODULE_NAME, '/image:%s' % DLL_PATH)
+def install_module(path):
+    appcmd('install', 'module', '/name:%s' % MODULE_NAME, '/image:%s' % path)
 
 
 @pytest.yield_fixture
-def install_iis_module(etw_consumer):
+def install_iis_module(asgi_handler_dll, etw_consumer):
     try:
-        install_module()
+        install_module(asgi_handler_dll)
         yield
     finally:
         # Allow errors to propogate, as they could affect the ability of other tests
