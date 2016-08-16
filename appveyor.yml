@@ -12,6 +12,8 @@ configuration:
 
 install:
  - choco install redis-64
+ - redis-server --service-install
+ - redis-server --service-start
 
 
 build_script:
