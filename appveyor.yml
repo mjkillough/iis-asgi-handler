@@ -10,6 +10,10 @@ configuration:
 - Release
 
 
+install:
+ - choco install redis-64
+
+
 build_script:
 - set GENERATOR=Visual Studio 14 2015
 - if %PLATFORM% == x64 set GENERATOR=%GENERATOR% Win64
