@@ -12,7 +12,7 @@ services:
 
 install:
 - choco install redis-64
-- redis-server --service-install
+- redis-server --service-install C:\ProgramData\chocolatey\lib\redis-64\redis.windows.conf
 - redis-server --service-start
 
 build_script:
