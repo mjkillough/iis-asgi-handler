@@ -57,6 +57,6 @@ source_group(fixtures REGULAR_EXPRESSION fixtures/.*)
 
 
 add_test(NAME IntegrationTests
-    COMMAND ${PYTEST} --asgi-handler-dll $<TARGET_FILE:AsgiHandler> ${TESTS}
+    COMMAND ${PYTEST} --asgi-handler-dll-bitness ${TARGET_PLATFORM} --asgi-handler-dll $<TARGET_FILE:AsgiHandler> ${TESTS}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )

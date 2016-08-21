@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 MODULE_NAME = 'AsgiHandler'
+BITNESS_64BIT = 'x64'
 DEFAULT_DLL_PATH = os.path.join(
     os.path.dirname(__file__), '..', '..', 'build', 'AsgiHandler', 'Debug', 'AsgiHandler.dll'
 )
@@ -32,9 +33,19 @@ def pytest_addoption(parser):
         '--asgi-handler-dll', action='store', default=DEFAULT_DLL_PATH,
         help='Path to the AsgiHandler.dll that is to be tested'
     )
+    parser.addoption(
+        '--asgi-handler-dll-bitness', action='store', default=BITNESS_64BIT,
+        help='Bitness of AsgiHandler.dll - i.e. x64 or x86'
+    )
 @pytest.fixture
 def asgi_handler_dll(request):
     return request.config.getoption('--asgi-handler-dll')
+@pytest.fixture
+def asgi_handler_dll_bitness(request):
+    if request.config.getoption('--asgi-handler-dll-bitness') == BITNESS_64BIT:
+        return '64'
+    else:
+        return '32'
 
 
 # Taken from pytest docs - makes report available in fixture.
@@ -58,14 +69,19 @@ def appcmd(*args):
 def uninstall_module():
     appcmd('uninstall', 'module', MODULE_NAME)
 
-def install_module(path):
-    appcmd('install', 'module', '/name:%s' % MODULE_NAME, '/image:%s' % path)
+def install_module(path, bitness):
+    appcmd(
+        'install', 'module',
+        '/name:%s' % MODULE_NAME,
+        '/image:%s' % path,
+        '/preCondition:bitness%s' % bitness
+    )
 
 
 @pytest.yield_fixture
-def install_iis_module(asgi_handler_dll, etw_consumer):
+def install_iis_module(asgi_handler_dll, asgi_handler_dll_bitness, etw_consumer):
     try:
-        install_module(asgi_handler_dll)
+        install_module(asgi_handler_dll, asgi_handler_dll_bitness)
         yield
     finally:
         # Allow errors to propogate, as they could affect the ability of other tests
@@ -74,7 +90,7 @@ def install_iis_module(asgi_handler_dll, etw_consumer):
 
 _Site = collections.namedtuple('_Site', ('url', 'https_url', 'ws_url', 'static_path'))
 @pytest.yield_fixture
-def site(tmpdir, install_iis_module):
+def site(tmpdir, install_iis_module, asgi_handler_dll_bitness):
     pool_name = 'asgi-test-pool'
     site_name = 'asgi-test-site'
     http_port = 90
@@ -116,7 +132,10 @@ def site(tmpdir, install_iis_module):
         subprocess.check_call(['icacls', str(staticfile), '/grant', 'Users:R'])
         # Add the site with its own app pool. Failing tests can cause the
         # pool to stop, so we create a new one for each test.
-        appcmd('add', 'apppool', '/name:' + pool_name)
+        appcmd('add', 'apppool',
+            '/name:' + pool_name,
+            '/enable32BitAppOnWin64:%s' % ('true' if asgi_handler_dll_bitness == '32' else 'false'),
+        )
         appcmd('add', 'site',
             '/name:' + site_name,
             '/bindings:http://*:%i,https://*:%i' % (http_port, https_port),
