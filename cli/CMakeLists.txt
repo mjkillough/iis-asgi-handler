@@ -7,4 +7,5 @@ add_executable(cli
 
 target_link_libraries(cli
     AsgiHandlerLib
+    ProcessPoolLib
 )

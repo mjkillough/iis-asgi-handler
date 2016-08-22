@@ -2,12 +2,15 @@
 
 #include <msgpack.hpp>
 
-#include "RedisChannelLayer.h"
-#include "AsgiHttpRequestMsg.h"
+#include "ProcessPool.h"
 
 
 void main()
 {
-
+    {
+        ProcessPool p;
+        p.CreateProcess("C:\\Windows\\System32\\cmd.exe", "cmd.exe");
+        std::cin.get();
+    }
     std::cin.get();
 }

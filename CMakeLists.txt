@@ -23,5 +23,6 @@ add_subdirectory(cli)
 add_subdirectory(AsgiHandlerLib)
 add_subdirectory(AsgiHandlerTest)
 add_subdirectory(AsgiHandler)
+add_subdirectory(ProcessPoolLib)
 add_subdirectory(IntegrationTests)
 
