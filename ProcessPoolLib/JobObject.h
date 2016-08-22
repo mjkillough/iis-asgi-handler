@@ -13,8 +13,6 @@ public:
     void operator=(JobObject) = delete;
     JobObject& operator=(JobObject&&) = default;
 
-    void Terminate();
-
     HANDLE GetHandle() const { return m_handle.Get(); }
 
 protected:

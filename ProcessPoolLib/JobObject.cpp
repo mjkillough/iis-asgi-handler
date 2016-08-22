@@ -23,11 +23,3 @@ void JobObject::Create()
         &job_info, sizeof(job_info)
     );
 }
-
-
-void JobObject::Terminate()
-{
-    // We've configured the job to terminate all of its processes when we
-    // close the handle.
-    m_handle.Close();
-}

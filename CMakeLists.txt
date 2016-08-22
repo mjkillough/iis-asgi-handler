@@ -24,5 +24,6 @@ add_subdirectory(AsgiHandlerLib)
 add_subdirectory(AsgiHandlerTest)
 add_subdirectory(AsgiHandler)
 add_subdirectory(ProcessPoolLib)
+add_subdirectory(ProcessPool)
 add_subdirectory(IntegrationTests)
 

@@ -1,12 +1,16 @@
 # ProcessPoolLib.lib - For use in ProcessPool.dll, but compiled as a lib so that it can also be used by tests.
 
 set(SOURCES
+    GlobalModule.cpp
+
     ProcessPool.cpp
     JobObject.cpp
 )
 
 
 set(HEADERS
+    GlobalModule.h
+
     ProcessPool.h
     JobObject.h
 
