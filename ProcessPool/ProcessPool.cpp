@@ -13,5 +13,5 @@ HRESULT __stdcall RegisterModule(
         module,
         GL_APPLICATION_START | GL_APPLICATION_STOP
     );
-	return hr;
+    return hr;
 }
