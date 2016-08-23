@@ -9,7 +9,7 @@ GLOBAL_NOTIFICATION_STATUS GlobalModule::OnGlobalApplicationStart(
 )
 {
     m_pool = std::make_unique<ProcessPool>();
-    m_pool->CreateProcess("C:\\Windows\\System32\\cmd.exe", "cmd.exe");
+    m_pool->CreateProcess("C:\\Windows\\System32\\cmd.exe", "/K \"set A=1\"");
 
     return GL_NOTIFICATION_CONTINUE;
 }

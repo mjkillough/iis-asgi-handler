@@ -10,6 +10,9 @@ class ProcessPool
 public:
     void CreateProcess(const std::string& process, const std::string& args);
 
+protected:
+    static std::string EscapeArgument(const std::string& argument);
+
 private:
     JobObject m_job;
 };
