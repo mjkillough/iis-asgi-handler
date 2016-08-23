@@ -37,6 +37,7 @@ set(TESTS
     test_asgi_http.py
     test_asgi_ws.py
     test_django_http.py
+    test_pool.py
 )
 
 set(FIXTURES
@@ -57,6 +58,11 @@ source_group(fixtures REGULAR_EXPRESSION fixtures/.*)
 
 
 add_test(NAME IntegrationTests
-    COMMAND ${PYTEST} --asgi-handler-dll-bitness ${TARGET_PLATFORM} --asgi-handler-dll $<TARGET_FILE:AsgiHandler> ${TESTS}
+    COMMAND
+        ${PYTEST}
+            --dll-bitness ${TARGET_PLATFORM}
+            --asgi-handler-dll $<TARGET_FILE:AsgiHandler>
+            --process-pool-dll $<TARGET_FILE:ProcessPool>
+            ${TESTS}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )

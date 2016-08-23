@@ -21,28 +21,39 @@ from .etw import *
 logger = logging.getLogger(__name__)
 
 
-MODULE_NAME = 'AsgiHandler'
 BITNESS_64BIT = 'x64'
-DEFAULT_DLL_PATH = os.path.join(
+ASGI_MODULE_NAME = 'AsgiHandler'
+POOL_MODULE_NAME = 'ProcessPool'
+DEFAULT_ASGI_DLL_PATH = os.path.join(
     os.path.dirname(__file__), '..', '..', 'build', 'AsgiHandler', 'Debug', 'AsgiHandler.dll'
+)
+DEFAULT_POOL_DLL_PATH = os.path.join(
+    os.path.dirname(__file__), '..', '..', 'build', 'ProcessPool', 'Debug', 'ProcessPool.dll'
 )
 
 
 def pytest_addoption(parser):
     parser.addoption(
-        '--asgi-handler-dll', action='store', default=DEFAULT_DLL_PATH,
+        '--asgi-handler-dll', action='store', default=DEFAULT_ASGI_DLL_PATH,
         help='Path to the AsgiHandler.dll that is to be tested'
     )
     parser.addoption(
-        '--asgi-handler-dll-bitness', action='store', default=BITNESS_64BIT,
-        help='Bitness of AsgiHandler.dll - i.e. x64 or x86'
+        '--process-pool-dll', action='store', default=DEFAULT_POOL_DLL_PATH,
+        help='Path to the ProcessPool.dll that is to be tested'
+    )
+    parser.addoption(
+        '--dll-bitness', action='store', default=BITNESS_64BIT,
+        help='Bitness of DLLs - i.e. x64 or x86'
     )
 @pytest.fixture
 def asgi_handler_dll(request):
     return request.config.getoption('--asgi-handler-dll')
 @pytest.fixture
-def asgi_handler_dll_bitness(request):
-    if request.config.getoption('--asgi-handler-dll-bitness') == BITNESS_64BIT:
+def process_pool_dll(request):
+    return request.config.getoption('--process-pool-dll')
+@pytest.fixture
+def dll_bitness(request):
+    if request.config.getoption('--dll-bitness') == BITNESS_64BIT:
         return '64'
     else:
         return '32'
@@ -66,31 +77,43 @@ def appcmd(*args):
     logger.debug('Returned: %s', output)
     return output
 
-def uninstall_module():
-    appcmd('uninstall', 'module', MODULE_NAME)
+def uninstall_module(name):
+    appcmd('uninstall', 'module', name)
 
-def install_module(path, bitness):
+def install_module(name, path, bitness):
     appcmd(
         'install', 'module',
-        '/name:%s' % MODULE_NAME,
+        '/name:%s' % name,
         '/image:%s' % path,
         '/preCondition:bitness%s' % bitness
     )
 
 
 @pytest.yield_fixture
-def install_iis_module(asgi_handler_dll, asgi_handler_dll_bitness, etw_consumer):
+def asgi_iis_module(asgi_handler_dll, dll_bitness, etw_consumer):
     try:
-        install_module(asgi_handler_dll, asgi_handler_dll_bitness)
+        install_module(ASGI_MODULE_NAME, asgi_handler_dll, dll_bitness)
         yield
     finally:
         # Allow errors to propogate, as they could affect the ability of other tests
         # to re-install the module.
-        uninstall_module()
+        uninstall_module(ASGI_MODULE_NAME)
+
+
+@pytest.yield_fixture
+def pool_iis_module(process_pool_dll, dll_bitness):
+    try:
+        install_module(POOL_MODULE_NAME, process_pool_dll, dll_bitness)
+        yield
+    finally:
+        # Allow errors to propogate, as they could affect the ability of other tests
+        # to re-install the module.
+        uninstall_module(POOL_MODULE_NAME)
+
 
 _Site = collections.namedtuple('_Site', ('url', 'https_url', 'ws_url', 'static_path'))
 @pytest.yield_fixture
-def site(tmpdir, install_iis_module, asgi_handler_dll_bitness):
+def site(tmpdir, asgi_iis_module, pool_iis_module, dll_bitness):
     pool_name = 'asgi-test-pool'
     site_name = 'asgi-test-site'
     http_port = 90
@@ -134,7 +157,7 @@ def site(tmpdir, install_iis_module, asgi_handler_dll_bitness):
         # pool to stop, so we create a new one for each test.
         appcmd('add', 'apppool',
             '/name:' + pool_name,
-            '/enable32BitAppOnWin64:%s' % ('true' if asgi_handler_dll_bitness == '32' else 'false'),
+            '/enable32BitAppOnWin64:%s' % ('true' if dll_bitness == '32' else 'false'),
         )
         appcmd('add', 'site',
             '/name:' + site_name,
