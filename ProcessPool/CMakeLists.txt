@@ -4,6 +4,8 @@
 add_library(ProcessPool SHARED
     ProcessPool.cpp
     ProcessPool.def
+
+    process-pool-iis-schema.xml
 )
 
 target_link_libraries(ProcessPool

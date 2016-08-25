@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ScopedHandle.h"
+#include "ScopedResources.h"
 
 
 class JobObject

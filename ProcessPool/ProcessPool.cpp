@@ -8,7 +8,7 @@ HRESULT __stdcall RegisterModule(
     DWORD iis_version, IHttpModuleRegistrationInfo* module_info, IHttpServer* http_server
 )
 {
-    auto module = new GlobalModule();
+    auto module = new GlobalModule(http_server);
     auto hr = module_info->SetGlobalNotifications(
         module,
         GL_APPLICATION_START | GL_APPLICATION_STOP

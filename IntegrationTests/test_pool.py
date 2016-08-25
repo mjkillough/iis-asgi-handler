@@ -35,6 +35,5 @@ def test_pool_launches_process(site, session):
         for proc in get_processes_for_user(user)
     }
     assert processes == {
-        ('cmd.exe', ('C:\\Windows\\System32\\cmd.exe', '/K', 'set A=1')),
-        ('conhost.exe', ('\\??\\C:\\WINDOWS\\system32\\conhost.exe', '0x4')),
+        ('pythonw.exe', ('C:\\Python27\\pythonw.exe', '-c', 'while True: pass')),
     }

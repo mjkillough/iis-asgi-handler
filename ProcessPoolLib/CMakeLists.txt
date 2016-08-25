@@ -14,7 +14,7 @@ set(HEADERS
     ProcessPool.h
     JobObject.h
 
-    ScopedHandle.h
+    ScopedResources.h
 )
 
 

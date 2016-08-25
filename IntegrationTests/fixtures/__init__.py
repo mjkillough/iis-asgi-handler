@@ -4,9 +4,12 @@
 from __future__ import unicode_literals, print_function, absolute_import
 
 import os
+import shutil
 import logging
+import ctypes
 import subprocess
 import collections
+import tempfile
 import concurrent.futures
 
 import pytest
@@ -30,6 +33,13 @@ DEFAULT_ASGI_DLL_PATH = os.path.join(
 DEFAULT_POOL_DLL_PATH = os.path.join(
     os.path.dirname(__file__), '..', '..', 'build', 'ProcessPool', 'Debug', 'ProcessPool.dll'
 )
+DEFAULT_POOL_SCHEMA_PATH = os.path.join(
+    # NOTE: Source directory.
+    os.path.dirname(__file__), '..', '..', 'ProcessPool', 'process-pool-iis-schema.xml'
+)
+
+IIS_SCHEMA_PATH = os.path.expandvars('%WinDir%\\System32\\inetsrv\\config\\schema\\')
+POOL_SCHEMA_INSTALL_PATH = os.path.join(IIS_SCHEMA_PATH, 'process-pool.xml')
 
 
 def pytest_addoption(parser):
@@ -42,6 +52,10 @@ def pytest_addoption(parser):
         help='Path to the ProcessPool.dll that is to be tested'
     )
     parser.addoption(
+        '--process-pool-schema-xml', action='store', default=DEFAULT_POOL_SCHEMA_PATH,
+        help='Path to the XML schema for ProcessPool.dll configuration'
+    )
+    parser.addoption(
         '--dll-bitness', action='store', default=BITNESS_64BIT,
         help='Bitness of DLLs - i.e. x64 or x86'
     )
@@ -51,6 +65,9 @@ def asgi_handler_dll(request):
 @pytest.fixture
 def process_pool_dll(request):
     return request.config.getoption('--process-pool-dll')
+@pytest.fixture
+def process_pool_schema_xml(request):
+    return request.config.getoption('--process-pool-schema-xml')
 @pytest.fixture
 def dll_bitness(request):
     if request.config.getoption('--dll-bitness') == BITNESS_64BIT:
@@ -67,6 +84,47 @@ def pytest_runtest_makereport(item, call):
     if call.when == 'call':
         rep = outcome.get_result()
         setattr(item, "_report", rep)
+
+
+# Install/uninstall our section in applicationHost.config.
+def _run_js(js):
+    handle, path = tempfile.mkstemp(suffix='.js')
+    os.close(handle)
+    with open(path, 'w') as f:
+        f.write("""
+            var ahwrite = new ActiveXObject("Microsoft.ApplicationHost.WritableAdminManager");
+            var configManager = ahwrite.ConfigManager;
+            var appHostConfig = configManager.GetConfigFile("MACHINE/WEBROOT/APPHOST");
+            var systemWebServer = appHostConfig.RootSectionGroup.Item("system.webServer");
+        """ + js + """
+            ahwrite.CommitChanges();
+        """)
+    subprocess.check_call(['cscript.exe', path])
+    os.remove(path)
+def add_section(name):
+    _run_js("systemWebServer.Sections.AddSection('%s');" % name)
+def remove_section(name):
+    _run_js("systemWebServer.Sections.DeleteSection('%s');" % name)
+
+
+# Install/uninstall schema XML files into IIS' installation directory, for the
+# modules that have configuration.
+# We need to disable file system redirection, as we're running in 32 bit Python.
+class DisableFileSystemRedirection(object):
+    _disable = ctypes.windll.kernel32.Wow64DisableWow64FsRedirection
+    _revert = ctypes.windll.kernel32.Wow64RevertWow64FsRedirection
+    def __enter__(self):
+        self.old_value = ctypes.c_long()
+        self.success = self._disable(ctypes.byref(self.old_value))
+    def __exit__(self, type, value, traceback):
+        if self.success:
+            self._revert(self.old_value)
+def install_schema(path, install_path):
+    with DisableFileSystemRedirection():
+        shutil.copy(path, install_path)
+def uninstall_schema(install_path):
+    with DisableFileSystemRedirection():
+        os.remove(install_path)
 
 
 def appcmd(*args):
@@ -101,14 +159,18 @@ def asgi_iis_module(asgi_handler_dll, dll_bitness, etw_consumer):
 
 
 @pytest.yield_fixture
-def pool_iis_module(process_pool_dll, dll_bitness):
+def pool_iis_module(process_pool_dll, dll_bitness, process_pool_schema_xml):
     try:
         install_module(POOL_MODULE_NAME, process_pool_dll, dll_bitness)
+        install_schema(process_pool_schema_xml, POOL_SCHEMA_INSTALL_PATH)
+        add_section('processPools')
         yield
     finally:
         # Allow errors to propogate, as they could affect the ability of other tests
         # to re-install the module.
         uninstall_module(POOL_MODULE_NAME)
+        uninstall_schema(POOL_SCHEMA_INSTALL_PATH)
+        remove_section('processPools')
 
 
 _Site = collections.namedtuple('_Site', ('url', 'https_url', 'ws_url', 'static_path'))
@@ -127,6 +189,12 @@ def site(tmpdir, asgi_iis_module, pool_iis_module, dll_bitness):
         webconfig.write("""
             <configuration>
                 <system.webServer>
+                    <processPools>
+                        <process
+                            executable="C:\Python27\pythonw.exe"
+                            arguments="-c &quot;while True: pass&quot;"
+                        />
+                    </processPools>
                     <handlers>
                         <clear />
                         <add

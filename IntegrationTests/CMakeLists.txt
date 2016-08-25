@@ -63,6 +63,7 @@ add_test(NAME IntegrationTests
             --dll-bitness ${TARGET_PLATFORM}
             --asgi-handler-dll $<TARGET_FILE:AsgiHandler>
             --process-pool-dll $<TARGET_FILE:ProcessPool>
+            --process-pool-schema-xml ${CMAKE_CURRENT_SOURCE_DIR}/../ProcessPool/process-pool-iis-schema.xml
             ${TESTS}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )

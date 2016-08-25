@@ -1,0 +1,9 @@
+<!-- http://www.iis.net/learn/develop/extending-iis-configuration/configuration-extensibility -->
+<configSchema>
+    <sectionSchema name="system.webServer/processPools">
+        <collection addElement="process">
+            <attribute name="executable" type="string" expand="true" />
+            <attribute name="arguments" type="string" expand="true" />
+        </collection>
+    </sectionSchema>
+</configSchema>

@@ -8,8 +8,7 @@
 void main()
 {
     {
-        ProcessPool p;
-        p.CreateProcess("C:\\Windows\\System32\\cmd.exe", "/K \"set A=1\"");
+        ProcessPool p{ L"C:\\Windows\\System32\\cmd.exe", L"/K \"set A=1\"" };
         std::cin.get();
     }
     std::cin.get();
