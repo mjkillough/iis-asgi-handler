@@ -45,8 +45,10 @@ set(FIXTURES
 
     fixtures/__init__.py
     fixtures/asgi.py
-    fixtures/etw.py
     fixtures/django_worker.py
+    fixtures/etw.py
+    fixtures/iis.py
+    fixtures/requests.py
 )
 
 add_custom_target(IntegrationTests ALL
