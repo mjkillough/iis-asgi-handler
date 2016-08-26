@@ -13,8 +13,6 @@ set(HEADERS
 
     ProcessPool.h
     JobObject.h
-
-    ScopedResources.h
 )
 
 
@@ -23,7 +21,8 @@ add_library(ProcessPoolLib STATIC
     ${HEADERS}
 )
 
-target_link_libraries(AsgiHandlerLib
+target_link_libraries(ProcessPoolLib
+    SharedUtils
 )
 
 target_include_directories(ProcessPoolLib PUBLIC

@@ -20,6 +20,8 @@ endif()
 
 add_subdirectory(dependencies)
 add_subdirectory(cli)
+add_subdirectory(SharedUtils)
+add_subdirectory(SharedUtilsTest)
 add_subdirectory(AsgiHandlerLib)
 add_subdirectory(AsgiHandlerTest)
 add_subdirectory(AsgiHandler)

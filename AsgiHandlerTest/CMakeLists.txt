@@ -4,7 +4,6 @@
 set(SOURCES
     main.cpp
 
-    test_Logger.cpp
     test_ReadBodyStep.cpp
     test_WaitForResponseStep.cpp
     test_FlushResponseStep.cpp
@@ -19,7 +18,6 @@ set(HEADERS
     mock_ResponsePump.h
     mock_HttpRequestHandler.h
     mock_ChannelLayer.h
-    mock_Logger.h
 )
 
 

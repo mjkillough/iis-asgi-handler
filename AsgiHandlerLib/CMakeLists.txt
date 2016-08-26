@@ -5,7 +5,6 @@ set(SOURCES
     HttpModule.cpp
     HttpModuleFactory.cpp
 
-    Logger.cpp
     RedisChannelLayer.cpp
     ResponsePump.cpp
 
@@ -24,7 +23,6 @@ set(HEADERS
     HttpModule.h
     HttpModuleFactory.h
 
-    Logger.h
     ChannelLayer.h
     ResponsePump.h
 
@@ -55,6 +53,7 @@ add_library(AsgiHandlerLib STATIC
 )
 
 target_link_libraries(AsgiHandlerLib
+    SharedUtils
     hiredis
     hiredis-interop
     msgpack-c
