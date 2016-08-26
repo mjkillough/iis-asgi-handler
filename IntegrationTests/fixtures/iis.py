@@ -130,7 +130,7 @@ def install_module(name, path, bitness):
 
 
 @pytest.yield_fixture
-def asgi_iis_module(asgi_handler_dll, dll_bitness, etw_consumer):
+def asgi_iis_module(asgi_handler_dll, dll_bitness, asgi_etw_consumer):
     try:
         install_module(ASGI_MODULE_NAME, asgi_handler_dll, dll_bitness)
         yield
@@ -141,7 +141,7 @@ def asgi_iis_module(asgi_handler_dll, dll_bitness, etw_consumer):
 
 
 @pytest.yield_fixture
-def pool_iis_module(process_pool_dll, dll_bitness, process_pool_schema_xml):
+def pool_iis_module(process_pool_dll, dll_bitness, pool_etw_consumer, process_pool_schema_xml):
     try:
         install_module(POOL_MODULE_NAME, process_pool_dll, dll_bitness)
         install_schema(process_pool_schema_xml, POOL_SCHEMA_INSTALL_PATH)

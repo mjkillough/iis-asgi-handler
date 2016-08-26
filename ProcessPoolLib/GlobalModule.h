@@ -7,6 +7,7 @@
 #include <httpserv.h>
 
 #include "ProcessPool.h"
+#include "Logger.h"
 
 
 class GlobalModule : public CGlobalModule
@@ -28,6 +29,7 @@ protected:
     std::wstring GetProperty(IAppHostElement *element, std::wstring name);
 
 private:
+    const EtwLogger logger;
     IHttpServer *m_http_server;
     std::vector<ProcessPool> m_pools;
 };

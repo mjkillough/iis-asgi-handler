@@ -7,12 +7,20 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
+#include "Logger.h"
 
-ProcessPool::ProcessPool(const std::wstring& process, const std::wstring& arguments)
-    : m_process(process), m_arguments(arguments)
+
+ProcessPool::ProcessPool(
+    const Logger& logger, const std::wstring& process,
+    const std::wstring& arguments
+)
+    : logger(logger), m_process(process), m_arguments(arguments)
 {
     // Make a combined command line, escaping process as necessary.
     m_command_line = EscapeArgument(process) + L" " + arguments;
+
+    logger.debug() << "ProcessPool initialized with command line: "
+                   << m_command_line;
 
     CreateProcess();
 }

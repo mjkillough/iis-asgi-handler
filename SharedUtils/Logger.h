@@ -31,6 +31,8 @@ public:
         return *this;
     }
 
+    LoggerStream& operator<<(const std::wstring& string);
+
 protected:
     std::ostringstream m_sstream;
     const Logger& logger;

@@ -9,9 +9,16 @@
 #include "ScopedResources.h"
 
 
+namespace {
+    // {8FC896E8-4370-4976-855B-19B70C976414}
+    static const GUID logger_etw_guid = { 0x8fc896e8, 0x4370, 0x4976,{ 0x85, 0x5b, 0x19, 0xb7, 0xc, 0x97, 0x64, 0x14 } };
+}
+
+
 GlobalModule::GlobalModule(IHttpServer *http_server)
-    : m_http_server(http_server)
+    : logger(logger_etw_guid), m_http_server(http_server)
 {
+    logger.debug() << "Constructed GlobalModule";
 }
 
 
@@ -19,7 +26,15 @@ GLOBAL_NOTIFICATION_STATUS GlobalModule::OnGlobalApplicationStart(
     IHttpApplicationStartProvider* provider
 )
 {
-    LoadConfiguration(provider->GetApplication());
+    auto app_name = std::wstring{ provider->GetApplication()->GetApplicationId() };
+    logger.debug() << "OnGlobalApplicationStart: " << app_name;
+
+    try {
+        LoadConfiguration(provider->GetApplication());
+    } catch (const std::runtime_error& e) {
+        logger.debug() << "Error loading configuration for " << app_name << ": "
+                       << "";
+    }
 
     return GL_NOTIFICATION_CONTINUE;
 }
@@ -29,6 +44,10 @@ GLOBAL_NOTIFICATION_STATUS GlobalModule::OnGlobalApplicationStop(
     IHttpApplicationStopProvider* provider
 )
 {
+    auto app_name = std::wstring{ provider->GetApplication()->GetApplicationId() };
+    logger.debug() << "OnGlobalApplicationStop: " << app_name << " "
+                   << "Terminating running pools.";
+
     // Destroy all our pools, which has the side-effect of terminating
     // their processes.
     m_pools.clear();
@@ -57,6 +76,8 @@ void GlobalModule::LoadConfiguration(IHttpApplication *application)
     if (FAILED(hr)) {
         // The schema is probably not installed. When we have logging,
         // we should log an error, but shouldn't crash the server..
+        logger.debug() << "Could not open system.webServer/processPools. "
+                       << "Is the config schema installed?";
         return;
     }
 
@@ -79,7 +100,7 @@ void GlobalModule::LoadConfiguration(IHttpApplication *application)
         auto arguments = GetProperty(element.Get(), L"arguments");
 
         // Create a ProcessPool for each:
-        m_pools.push_back(ProcessPool{ executable, arguments });
+        m_pools.push_back(ProcessPool{ logger, executable, arguments });
     }
 }
 

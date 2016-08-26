@@ -12,6 +12,15 @@ LoggerStream::~LoggerStream()
     logger.Log(m_sstream.str());
 }
 
+LoggerStream& LoggerStream::operator<<(const std::wstring& string)
+{
+    // This is a bit sad. We'll conver the wstring to a utf-8 string
+    // but then EtwLogger will convert it back to u16 wstring.
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> utf8_conv;
+    m_sstream << utf8_conv.to_bytes(string);
+    return *this;
+}
+
 
 EtwLogger::EtwLogger(const GUID& etw_guid)
 {
