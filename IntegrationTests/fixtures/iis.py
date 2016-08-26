@@ -155,19 +155,28 @@ def pool_iis_module(process_pool_dll, dll_bitness, process_pool_schema_xml):
         remove_section('processPools')
 
 
-_Site = collections.namedtuple('_Site', ('url', 'https_url', 'ws_url', 'static_path'))
-@pytest.yield_fixture
-def site(tmpdir, asgi_iis_module, pool_iis_module, dll_bitness):
+class _Site(object):
+
     pool_name = 'asgi-test-pool'
     site_name = 'asgi-test-site'
     http_port = 90
     https_port = 91
-    try:
+    http_url = 'http://localhost:%i' % http_port
+    https_url = 'http://localhost:%i' % https_port
+    ws_url = 'ws://localhost:%i' % http_port
+    url = http_url
+    static_path = '/static.html'
+
+    def __init__(self, directory, dll_bitness):
+        self.directory = directory
+        self.dll_bitness = dll_bitness
+
+    def create(self):
         # Create a web.config which sends most requests through
         # our handler. We create a subdirectory that serves static files
         # so that we can test our handler doesn't get in the way
         # of others.
-        webconfig = tmpdir.join('web.config')
+        webconfig = self.directory.join('web.config')
         webconfig.write("""
             <configuration>
                 <system.webServer>
@@ -196,32 +205,38 @@ def site(tmpdir, asgi_iis_module, pool_iis_module, dll_bitness):
                 </system.webServer>
             </configuration>
         """)
-        staticfile = tmpdir.join('static.html')
+        staticfile = self.directory.join('static.html')
         staticfile.write('Hello, world!')
         # Ensure IIS can read the directory. Use icacls to avoid introducing
         # pywin32 dependency.
-        subprocess.check_call(['icacls', str(tmpdir), '/grant', 'Users:R'])
-        subprocess.check_call(['icacls', str(webconfig), '/grant', 'Users:R'])
-        subprocess.check_call(['icacls', str(staticfile), '/grant', 'Users:R'])
+        for path in [self.directory, webconfig, staticfile]:
+            subprocess.check_call(['icacls', str(path), '/grant', 'Users:R'])
         # Add the site with its own app pool. Failing tests can cause the
         # pool to stop, so we create a new one for each test.
         appcmd('add', 'apppool',
-            '/name:' + pool_name,
-            '/enable32BitAppOnWin64:%s' % ('true' if dll_bitness == '32' else 'false'),
+            '/name:' + self.pool_name,
+            '/enable32BitAppOnWin64:%s' % ('true' if self.dll_bitness == '32' else 'false'),
         )
         appcmd('add', 'site',
-            '/name:' + site_name,
-            '/bindings:http://*:%i,https://*:%i' % (http_port, https_port),
-            '/physicalPath:' + str(tmpdir),
+            '/name:' + self.site_name,
+            '/bindings:http://*:%i,https://*:%i' % (self.http_port, self.https_port),
+            '/physicalPath:' + str(self.directory),
         )
-        appcmd('set', 'app', site_name + '/', '/applicationPool:' + pool_name)
+        appcmd('set', 'app', self.site_name + '/', '/applicationPool:' + self.pool_name)
         appcmd('unlock', 'config', '-section:system.webServer/handlers')
-        yield _Site(
-            'http://localhost:%i' % http_port,
-            'https://localhost:%i' % https_port,
-            'ws://localhost:%i' % http_port,
-            '/static.html'
-        )
-    finally:
-        appcmd('delete', 'apppool', pool_name)
-        appcmd('delete', 'site', site_name)
+
+    def destroy(self):
+        appcmd('delete', 'apppool', self.pool_name)
+        appcmd('delete', 'site', self.site_name)
+
+    def __enter__(self):
+        self.create()
+        return self
+    def __exit__(self, *args):
+        self.destroy()
+
+
+@pytest.yield_fixture
+def site(tmpdir, asgi_iis_module, pool_iis_module, dll_bitness):
+    with _Site(tmpdir, dll_bitness) as site:
+        yield site
