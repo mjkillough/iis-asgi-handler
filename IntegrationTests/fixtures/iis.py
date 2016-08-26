@@ -180,12 +180,6 @@ class _Site(object):
         webconfig.write("""
             <configuration>
                 <system.webServer>
-                    <processPools>
-                        <process
-                            executable="C:\Python27\pythonw.exe"
-                            arguments="-c &quot;while True: pass&quot;"
-                        />
-                    </processPools>
                     <handlers>
                         <clear />
                         <add
@@ -235,6 +229,28 @@ class _Site(object):
     def __exit__(self, *args):
         self.destroy()
 
+    def stop(self):
+        appcmd('stop', 'site', self.site_name)
+    def start(self):
+        appcmd('start', 'site', self.site_name)
+    def restart(self):
+        self.stop()
+        self.start()
+
+    def add_process_pool(self, executable, arguments):
+        appcmd(
+            'set', 'config', self.site_name,
+           '/section:system.webServer/processPools',
+           '/+[executable=\'%s\',arguments=\'%s\']' % (executable, arguments)
+        )
+        self.restart()
+
+    def clear_process_pools(self):
+        appcmd(
+            'clear', 'config', self.site_name,
+            '/section:system.webServer/processPools',
+        )
+        self.restart()
 
 @pytest.yield_fixture
 def site(tmpdir, asgi_iis_module, pool_iis_module, dll_bitness):
