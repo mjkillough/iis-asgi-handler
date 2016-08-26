@@ -158,6 +158,7 @@ def pool_iis_module(process_pool_dll, dll_bitness, process_pool_schema_xml):
 class _Site(object):
 
     pool_name = 'asgi-test-pool'
+    user = 'IIS APPPOOL\\' + pool_name
     site_name = 'asgi-test-site'
     http_port = 90
     https_port = 91

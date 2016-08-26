@@ -24,16 +24,15 @@ def get_processes_for_user(user):
 
 
 def test_pool_launches_process(site, session):
-    user = 'IIS APPPOOL\\asgi-test-pool'
     site.add_process_pool('C:\\Python27\\pythonw.exe', '-c "while True: pass"')
 
-    before = get_processes_for_user(user)
+    before = get_processes_for_user(site.user)
 
     # Then when we make the first request, we should see the process
     # get started.
     session.get(site.url + site.static_path).result(timeout=2)
 
-    after = get_processes_for_user(user)
+    after = get_processes_for_user(site.user)
     assert after == before | {
         ('pythonw.exe', ('C:\\Python27\\pythonw.exe', '-c', 'while True: pass')),
     }
