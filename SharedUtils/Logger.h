@@ -41,13 +41,20 @@ class Logger
 {
     friend class LoggerStream;
 public:
-    Logger();
-    virtual ~Logger();
-
     virtual LoggerStream debug() const { return GetStream(); }
 protected:
-    virtual void Log(const std::string& msg) const;
+    virtual void Log(const std::string& msg) const = 0;
     virtual LoggerStream GetStream() const { return LoggerStream(*this); }
+};
+
+
+class EtwLogger : public Logger
+{
+public:
+    EtwLogger(const GUID& etw_guid);
+    virtual ~EtwLogger();
+protected:
+    virtual void Log(const std::string& msg) const;
 private:
-    ::REGHANDLE m_etw_handle;
+    ::REGHANDLE m_etw_handle{ 0 };
 };
