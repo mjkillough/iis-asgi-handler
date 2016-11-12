@@ -40,8 +40,7 @@ void ProcessPool::CreateProcess()
         &startup_info, &proc_info
     );
     if (!created) {
-        std::cout << "Could not create process: "
-                  << ::GetLastError() << std::endl;
+		logger.debug() << "Could not create process: " << ::GetLastError();
         return;
     }
 
@@ -50,8 +49,8 @@ void ProcessPool::CreateProcess()
     BOOL assigned = ::AssignProcessToJobObject(m_job.GetHandle(), proc_info.hProcess);
     bool resumed = ::ResumeThread(proc_info.hThread) != -1;
     if (!assigned || !resumed) {
-        std::cout << "AssignProcessToJobObject=" << assigned << " ResumeThread="
-                  << resumed << " GetLastError()=" << GetLastError() << std::endl;
+        logger.debug() << "AssignProcessToJobObject=" << assigned << " ResumeThread="
+                       << resumed << " GetLastError()=" << GetLastError();
         ::TerminateProcess(proc_info.hProcess, 0);
         ::CloseHandle(proc_info.hProcess);
         ::CloseHandle(proc_info.hThread);
