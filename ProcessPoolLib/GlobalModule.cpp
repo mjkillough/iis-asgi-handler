@@ -58,7 +58,7 @@ GLOBAL_NOTIFICATION_STATUS GlobalModule::OnGlobalApplicationStop(
 
 #define RAISE_ON_FAILURE(code, msg)         \
     {                                       \
-        HRESULT __hr = code;                \
+        auto __hr = HRESULT{ code };        \
         if (FAILED(__hr)) {                 \
             throw std::runtime_error(msg);  \
         }                                   \
@@ -69,7 +69,7 @@ void GlobalModule::LoadConfiguration(IHttpApplication *application)
     auto section_name = ScopedBstr{ L"system.webServer/processPools" };
     auto config_path = ScopedBstr{ application->GetAppConfigPath() };
 
-    ScopedConfig<IAppHostElement> section;
+    auto section = ScopedConfig<IAppHostElement>{};
     auto hr = m_http_server->GetAdminManager()->GetAdminSection(
         section_name.Get(), config_path.Get(), section.Receive()
     );
@@ -81,18 +81,18 @@ void GlobalModule::LoadConfiguration(IHttpApplication *application)
         return;
     }
 
-    ScopedConfig<IAppHostElementCollection> collection;
+    auto collection = ScopedConfig<IAppHostElementCollection>{};
     RAISE_ON_FAILURE(section->get_Collection(collection.Receive()), "get_Collection()");
 
-    DWORD element_count = 0;
+    auto element_count = DWORD{ 0 };
     RAISE_ON_FAILURE(collection->get_Count(&element_count), "get_Count()");
 
-    for (DWORD element_idx = 0; element_idx < element_count; element_idx++) {
-        VARIANT element_variant = { 0 };
+    for (auto element_idx = 0; element_idx < element_count; element_idx++) {
+        auto element_variant = VARIANT{ 0 };
         element_variant.vt = VT_I4;
         element_variant.lVal = element_idx;
 
-        ScopedConfig<IAppHostElement> element;
+        auto element = ScopedConfig<IAppHostElement>{};
         RAISE_ON_FAILURE(collection->get_Item(element_variant, element.Receive()), "get_Item()");
 
         // Each element should be a <processPool/>, which will have the following properties:

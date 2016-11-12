@@ -29,25 +29,25 @@ ProcessPool::ProcessPool(
 void ProcessPool::CreateProcess()
 {
     // We must make a copy as a char*, as CreateProcessW() can modify it.
-    std::vector<char> cmd_buffer(m_command_line.length() + 1, '\0');
+    auto cmd_buffer = std::vector<char>(m_command_line.length() + 1, '\0');
     std::copy(m_command_line.begin(), m_command_line.end(), cmd_buffer.begin());
 
-    STARTUPINFO startup_info = { 0 };
-    PROCESS_INFORMATION proc_info = { 0 };
-    BOOL created = ::CreateProcess(
+    auto startup_info = STARTUPINFO{ 0 };
+    auto proc_info = PROCESS_INFORMATION{ 0 };
+    auto created = ::CreateProcess(
         nullptr, cmd_buffer.data(),
         nullptr, nullptr, FALSE, CREATE_SUSPENDED, nullptr, nullptr,
         &startup_info, &proc_info
     );
     if (!created) {
-		logger.debug() << "Could not create process: " << ::GetLastError();
+        logger.debug() << "Could not create process: " << ::GetLastError();
         return;
     }
 
     // Assign the process to the job and resume it. If we fail to do either,
     // then terminate the process.
-    BOOL assigned = ::AssignProcessToJobObject(m_job.GetHandle(), proc_info.hProcess);
-    bool resumed = ::ResumeThread(proc_info.hThread) != -1;
+    auto assigned = ::AssignProcessToJobObject(m_job.GetHandle(), proc_info.hProcess);
+    auto resumed = ::ResumeThread(proc_info.hThread) != -1;
     if (!assigned || !resumed) {
         logger.debug() << "AssignProcessToJobObject=" << assigned << " ResumeThread="
                        << resumed << " GetLastError()=" << GetLastError();
@@ -69,11 +69,10 @@ std::wstring ProcessPool::EscapeArgument(const std::wstring& argument)
         return argument;
     }
 
-    std::wostringstream escaped;
+    auto escaped = std::wostringstream{ L"\"", std::ios_base::ate };
     auto escaped_it = static_cast<std::ostreambuf_iterator<wchar_t>>(escaped);
-    escaped << L'\"';
-
     auto num_backslashes = 0;
+
     for (auto& character : argument) {
         switch (character) {
         case L'\\':

@@ -16,7 +16,7 @@ void JobObject::Create()
 
     // Tell the Job to terminate all of its processes when the handle
     // to it is closed.
-    JOBOBJECT_EXTENDED_LIMIT_INFORMATION job_info = { 0 };
+    auto job_info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION{ 0 };
     job_info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
     ::SetInformationJobObject(
         m_handle.Get(), JobObjectExtendedLimitInformation,
