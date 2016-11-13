@@ -39,7 +39,6 @@ def test_pool_launches_process(site, session):
     }
 
 
-@pytest.mark.xfail
 def test_pool_terminated_when_site_stopped(site, session):
     site.add_process_pool(_pythonw, '-c "import time; time.sleep(100)"')
     before = get_processes_for_user(site.user)
@@ -52,7 +51,7 @@ def test_pool_terminated_when_site_stopped(site, session):
         ('pythonw.exe', (_pythonw, '-c', 'import time; time.sleep(100)')),
     }
 
-    site.stop()
+    site.stop_application_pool()
     after2 = get_processes_for_user(site.user)
     assert before == after2
 

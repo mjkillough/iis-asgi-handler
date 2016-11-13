@@ -238,6 +238,14 @@ class _Site(object):
         self.stop()
         self.start()
 
+    def stop_application_pool(self):
+        appcmd('stop', 'apppool', self.pool_name)
+    def start_application_pool(self):
+        appcmd('start', 'apppool', self.pool_name)
+    def restart_application_pool(self):
+        self.stop_application_pool()
+        self.start_application_pool()
+
     def add_process_pool(self, executable, arguments):
         appcmd(
             'set', 'config', self.site_name,
