@@ -235,10 +235,10 @@ class _ProcessPool(object):
                     procs.append(proc)
             except psutil.AccessDenied:
                 pass
-        return {
+        return [
             (proc.name(), tuple(proc.cmdline()))
             for proc in procs
-        }
+        ]
 
     @property
     def escaped_arguments(self):
@@ -365,12 +365,17 @@ class _Site(object):
         self.stop_application_pool()
         self.start_application_pool()
 
-    def add_process_pool(self):
+    def add_process_pool(self, count=1):
         pool = _ProcessPool(self)
+        config = dict(executable=pool.process, arguments=pool.escaped_arguments)
+        # If count=None, then don't specify and let IIS use the default.
+        if count is not None:
+            config['count'] = str(count)
+        config_str = ','.join('%s=\'%s\'' % (k, v) for k, v in config.iteritems())
         appcmd(
             'set', 'config', self.site_name,
            '/section:system.webServer/processPools',
-           '/+[executable=\'%s\',arguments=\'%s\']' % (pool.process, pool.escaped_arguments)
+           '/+[%s]' % (config_str)
         )
         self.restart()
         return pool

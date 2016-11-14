@@ -4,6 +4,7 @@
         <collection addElement="process">
             <attribute name="executable" type="string" expand="true" />
             <attribute name="arguments" type="string" expand="true" />
+            <attribute name="count" type="int" defaultValue="1" />
         </collection>
     </sectionSchema>
 </configSchema>

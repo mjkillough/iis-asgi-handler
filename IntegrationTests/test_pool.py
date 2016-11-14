@@ -26,7 +26,8 @@ def start_pools(session, site):
 
 
 def test_pool_launches_process(site, session):
-    pool = site.add_process_pool()
+    # count=None checks that our config schema has a default value of '1' for count
+    pool = site.add_process_pool(count=None)
     assert pool.num_started == 0
     start_pools(session, site)
     assert wait_until(lambda: pool.num_started == 1)
@@ -67,11 +68,25 @@ def test_pool_add_to_existing_site(site, session):
     assert pool2.num_running == 1
 
 
-def test_pool_exiting_process_restarted(site, session):
-    pool = site.add_process_pool()
+def test_pool_multiple_processes_in_pool(site, session):
+    pool1 = site.add_process_pool(count=10)
+    pool2 = site.add_process_pool(count=1)
     start_pools(session, site)
-    assert wait_until(lambda: pool.num_started == 1)
-    assert pool.num_running == 1
+    assert wait_until(lambda: pool1.num_started == 10)
+    assert pool1.num_running == 10
+    assert wait_until(lambda: pool2.num_started == 1)
+    assert pool2.num_running == 1
+
+
+def test_pool_exiting_process_restarted(site, session):
+    pool = site.add_process_pool(count=3)
+    start_pools(session, site)
+    assert wait_until(lambda: pool.num_started == 3)
+    assert pool.num_running == 3
     pool.kill_one()
-    assert wait_until(lambda: pool.num_started == 2)
-    assert pool.num_running == 1
+    assert wait_until(lambda: pool.num_started == 4)
+    assert pool.num_running == 3
+    pool.kill_one()
+    pool.kill_one()
+    assert wait_until(lambda: pool.num_started == 6)
+    assert pool.num_running == 3

@@ -58,13 +58,17 @@ GLOBAL_NOTIFICATION_STATUS GlobalModule::OnGlobalApplicationStop(
 }
 
 
-#define RAISE_ON_FAILURE(code, msg)         \
-    {                                       \
-        auto __hr = HRESULT{ code };        \
-        if (FAILED(__hr)) {                 \
-            throw std::runtime_error(msg);  \
-        }                                   \
-    }                                       \
+namespace {
+
+void RaiseOnFailure(HRESULT hr, const std::string& msg)
+{
+    if (FAILED(hr)) {
+        throw std::runtime_error(msg);
+    }
+}
+
+} // end anonymous namespace
+
 
 void GlobalModule::LoadConfiguration(IHttpApplication *application)
 {
@@ -84,10 +88,16 @@ void GlobalModule::LoadConfiguration(IHttpApplication *application)
     }
 
     auto collection = ScopedConfig<IAppHostElementCollection>{};
-    RAISE_ON_FAILURE(section->get_Collection(collection.Receive()), "get_Collection()");
+    RaiseOnFailure(
+        section->get_Collection(collection.Receive()),
+        "get_Collection()"
+    );
 
     auto element_count = DWORD{ 0 };
-    RAISE_ON_FAILURE(collection->get_Count(&element_count), "get_Count()");
+    RaiseOnFailure(
+        collection->get_Count(&element_count),
+        "get_Count()"
+    );
 
     for (auto element_idx = 0; element_idx < element_count; element_idx++) {
         auto element_variant = VARIANT{ 0 };
@@ -95,27 +105,37 @@ void GlobalModule::LoadConfiguration(IHttpApplication *application)
         element_variant.lVal = element_idx;
 
         auto element = ScopedConfig<IAppHostElement>{};
-        RAISE_ON_FAILURE(collection->get_Item(element_variant, element.Receive()), "get_Item()");
+        RaiseOnFailure(
+            collection->get_Item(element_variant, element.Receive()),
+            "get_Item()"
+        );
 
         // Each element should be a <processPool/>, which will have the following properties:
+        // TODO: Make arguments and count optional.
         auto executable = GetProperty(element.Get(), L"executable");
         auto arguments = GetProperty(element.Get(), L"arguments");
+        auto count = std::stoi(GetProperty(element.Get(), L"count"));
 
         // Create a ProcessPool for each:
-        m_pools.push_back(std::make_unique<ProcessPool>(logger, executable, arguments, 1));
+        m_pools.push_back(std::make_unique<ProcessPool>(logger, executable, arguments, count));
     }
 }
 
-std::wstring GlobalModule::GetProperty(IAppHostElement *element, std::wstring name)
+std::wstring GlobalModule::GetProperty(IAppHostElement *element, const std::wstring& name)
 {
     auto bstr_name = ScopedBstr{ name.c_str() };
-    ScopedConfig<IAppHostProperty> property;
-    RAISE_ON_FAILURE(element->GetPropertyByName(
-        bstr_name.Get(), property.Receive()
-    ), "GetPropertyByName()");
+    auto property = ScopedConfig<IAppHostProperty>{};
+    RaiseOnFailure(
+        element->GetPropertyByName(bstr_name.Get(), property.Receive()),
+        "GetPropertyByName()"
+    );
 
-    BSTR bstr_value = nullptr;
-    RAISE_ON_FAILURE(property->get_StringValue(&bstr_value), "get_StringValue()");
+    auto bstr_value = BSTR{ nullptr };
+    RaiseOnFailure(
+        property->get_StringValue(&bstr_value),
+        "get_StringValue()"
+    );
 
-    return std::wstring(bstr_value);
+    return std::wstring{ bstr_value };
 }
+

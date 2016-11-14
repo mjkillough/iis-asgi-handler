@@ -26,7 +26,7 @@ public:
 
 protected:
     void LoadConfiguration(IHttpApplication *application);
-    std::wstring GetProperty(IAppHostElement *element, std::wstring name);
+    std::wstring GetProperty(IAppHostElement *element, const std::wstring& name);
 
 private:
     const EtwLogger logger;
