@@ -7,11 +7,16 @@ import collections
 import ctypes
 import logging
 import os
+import re
 import shutil
 import subprocess
+import sys
 import tempfile
 
 import pytest
+
+import psutil
+
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +160,120 @@ def pool_iis_module(process_pool_dll, dll_bitness, pool_etw_consumer, process_po
         remove_section('processPools')
 
 
+class SECURITY_DESCRIPTOR(ctypes.Structure):
+	# From jaraco.windows
+	_fields_ = [
+		('Revision', ctypes.c_ubyte),
+		('Sbz1', ctypes.c_ubyte),
+		('Control', ctypes.c_ushort),
+		('Owner', ctypes.c_void_p),
+		('Group', ctypes.c_void_p),
+		('Sacl', ctypes.c_void_p),
+		('Dacl', ctypes.c_void_p),
+	]
+
+
+class SECURITY_ATTRIBUTES(ctypes.Structure):
+    # From jaraco.windows
+	_fields_ = [
+		('nLength', ctypes.c_uint32),
+		('lpSecurityDescriptor', ctypes.POINTER(SECURITY_DESCRIPTOR)),
+		('bInheritHandle', ctypes.c_bool),
+	]
+
+
+class _ProcessPool(object):
+
+    _pythonw = sys.executable.replace('python.exe', 'pythonw.exe')
+    _worker_py = os.path.join(os.path.dirname(__file__), 'worker.py')
+
+    def __init__(self, site):
+        self.site = site
+        self.name = os.urandom(4).encode('hex')
+        self.process = self._pythonw
+        self.arguments = [self._worker_py, self.name]
+        self._object_prefix = u'Global\\ProcessPool_IntegrationTests_Worker_' + self.name
+
+        # Create a SECURITY_DESCRIPTOR that grants everyone access: we'll be sharing a sempahore
+        # and event between user sessions.
+        sd = SECURITY_DESCRIPTOR()
+        ctypes.windll.advapi32.InitializeSecurityDescriptor(ctypes.byref(sd), 1)
+        ctypes.windll.advapi32.SetSecurityDescriptorDacl(ctypes.byref(sd), True, None, False)
+        sa = SECURITY_ATTRIBUTES()
+        sa.nLength = ctypes.sizeof(sa)
+        sa.lpSecurityDescriptor = ctypes.pointer(sd)
+        sa.bInheritHandle = False
+
+        # Create a shared semaphore which we can use to count how many processes have run and
+        # an event to stop processes. The event is declared with auto-reset, so that each time
+        # it is singaled, a single process exits.
+        self.semaphore = ctypes.windll.kernel32.CreateSemaphoreW(
+            ctypes.byref(sa), 0x0, 0xFFFF,
+            self._object_prefix + '_Counter'
+        )
+        assert self.semaphore, ctypes.GetLastError()
+        self.exit_event = ctypes.windll.kernel32.CreateEventW(
+            ctypes.byref(sa), False, False,
+            self._object_prefix + '_Exit'
+        )
+        assert self.exit_event, ctypes.GetLastError()
+
+    @staticmethod
+    def escape_argument(arg):
+        # See https://blogs.msdn.microsoft.com/twistylittlepassagesallalike/2011/04/23/everyone-quotes-command-line-arguments-the-wrong-way/
+        if not arg or re.search(r'(["\s])', arg):
+            return '"' + arg.replace('"', r'\"') + '"'
+        return arg
+
+    @staticmethod
+    def get_processes_for_user(user):
+        procs = []
+        for proc in psutil.process_iter():
+            try:
+                # We ignore w3wp.exe (IIS app pool) as it is uninteresting.
+                if proc.username() == user and proc.name() != 'w3wp.exe':
+                    procs.append(proc)
+            except psutil.AccessDenied:
+                pass
+        return {
+            (proc.name(), tuple(proc.cmdline()))
+            for proc in procs
+        }
+
+    @property
+    def escaped_arguments(self):
+        return ' '.join(map(self.escape_argument, self.arguments))
+
+    @property
+    def num_started(self):
+        """Returns the number of processes that have been started for this pool.
+
+        Each process increments a semaphore when it starts, so we check the current count.
+        """
+        # We must increment/decrement the semaphore in order to get the current value.
+        current_count = ctypes.c_long()
+        ctypes.windll.kernel32.ReleaseSemaphore(self.semaphore, 1, ctypes.byref(current_count))
+        ctypes.windll.kernel32.WaitForSingleObject(self.semaphore, 0)
+        return current_count.value
+
+    @property
+    def num_running(self):
+        """Returns the number of processes that are currently running in the pool."""
+        # It is unlikely that there are other processes running under the same user with
+        # the same command line.
+        expected = (os.path.basename(self.process), tuple([self.process] + self.arguments))
+        matching = [
+            process
+            for process in self.get_processes_for_user(self.site.user)
+            if process == expected
+        ]
+        return len(matching)
+
+    def kill_one(self):
+        """Signals the event, causing one process to exit"""
+        assert ctypes.windll.kernel32.SetEvent(self.exit_event), ctypes.GetLastError()
+
+
 class _Site(object):
 
     pool_name = 'asgi-test-pool'
@@ -246,13 +365,15 @@ class _Site(object):
         self.stop_application_pool()
         self.start_application_pool()
 
-    def add_process_pool(self, executable, arguments):
+    def add_process_pool(self):
+        pool = _ProcessPool(self)
         appcmd(
             'set', 'config', self.site_name,
            '/section:system.webServer/processPools',
-           '/+[executable=\'%s\',arguments=\'%s\']' % (executable, arguments)
+           '/+[executable=\'%s\',arguments=\'%s\']' % (pool.process, pool.escaped_arguments)
         )
         self.restart()
+        return pool
 
     def clear_process_pools(self):
         appcmd(

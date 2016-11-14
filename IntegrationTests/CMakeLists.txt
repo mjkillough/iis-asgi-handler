@@ -49,6 +49,7 @@ set(FIXTURES
     fixtures/etw.py
     fixtures/iis.py
     fixtures/requests.py
+    fixtures/worker.py
 )
 
 add_custom_target(IntegrationTests ALL
