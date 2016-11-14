@@ -52,6 +52,8 @@ GLOBAL_NOTIFICATION_STATUS GlobalModule::OnGlobalApplicationStop(
     // their processes.
     m_pools.clear();
 
+    logger.debug() << "OnGlobalApplicationStop finished";
+
     return GL_NOTIFICATION_CONTINUE;
 }
 
@@ -100,7 +102,7 @@ void GlobalModule::LoadConfiguration(IHttpApplication *application)
         auto arguments = GetProperty(element.Get(), L"arguments");
 
         // Create a ProcessPool for each:
-        m_pools.push_back(ProcessPool{ logger, executable, arguments });
+        m_pools.push_back(std::make_unique<ProcessPool>(logger, executable, arguments, 1));
     }
 }
 

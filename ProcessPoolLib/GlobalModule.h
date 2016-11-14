@@ -31,5 +31,5 @@ protected:
 private:
     const EtwLogger logger;
     IHttpServer *m_http_server;
-    std::vector<ProcessPool> m_pools;
+    std::vector<std::unique_ptr<ProcessPool>> m_pools;
 };

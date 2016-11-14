@@ -67,11 +67,11 @@ def test_pool_add_to_existing_site(site, session):
     assert pool2.num_running == 1
 
 
-def test_pool_exiting_process_not_restarted(site, session):
+def test_pool_exiting_process_restarted(site, session):
     pool = site.add_process_pool()
     start_pools(session, site)
     assert wait_until(lambda: pool.num_started == 1)
     assert pool.num_running == 1
     pool.kill_one()
-    assert wait_until(lambda: pool.num_running == 0)
-    assert pool.num_started == 1
+    assert wait_until(lambda: pool.num_started == 2)
+    assert pool.num_running == 1
